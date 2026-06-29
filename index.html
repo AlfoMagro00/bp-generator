@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BP Generator — Accesso</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+body{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:var(--bg);
+}
+#box{
+  background:var(--sur);
+  border:1px solid var(--bor);
+  border-radius:16px;
+  width:100%;
+  max-width:400px;
+  overflow:hidden;
+  box-shadow:0 8px 40px rgba(0,0,0,.12);
+}
+.lhead{
+  background:linear-gradient(135deg,#1e3a8a,#2563eb);
+  padding:28px 24px 22px;
+  text-align:center;
+  color:#fff;
+}
+.lhead h1{font-size:22px;font-weight:800;margin-bottom:4px;letter-spacing:-.3px}
+.lhead p{font-size:12.5px;opacity:.8;margin:0}
+.ltabs{
+  display:flex;
+  border-bottom:2px solid var(--bor);
+  background:var(--sur);
+}
+.ltab{
+  flex:1;padding:13px 8px;
+  text-align:center;cursor:pointer;
+  font-size:13.5px;font-weight:500;
+  color:var(--mut);
+  border:none;background:none;
+  border-bottom:2px solid transparent;
+  margin-bottom:-2px;
+  transition:.15s;
+}
+.ltab.on{
+  color:var(--acc-t);
+  border-bottom-color:var(--acc);
+  font-weight:700;
+}
+.lbody{padding:24px 24px 20px}
+.lfield{margin-bottom:14px}
+.lfield label{
+  display:block;
+  font-size:12px;
+  font-weight:600;
+  color:var(--mut);
+  margin-bottom:5px;
+  letter-spacing:.01em;
+}
+.lfield input{
+  display:block;
+  width:100%;
+  padding:10px 12px;
+  border:1.5px solid var(--bors);
+  border-radius:8px;
+  background:var(--sur2);
+  color:var(--txt);
+  font-size:14px;
+  font-family:inherit;
+  outline:none;
+  transition:.15s;
+  box-sizing:border-box;
+}
+.lfield input:focus{
+  border-color:var(--acc);
+  background:var(--sur);
+  box-shadow:0 0 0 3px var(--acc-bg);
+}
+.lbtn{
+  display:block;
+  width:100%;
+  padding:11px;
+  background:linear-gradient(135deg,#1e40af,#2563eb);
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  font-size:14.5px;
+  font-weight:700;
+  cursor:pointer;
+  margin-top:6px;
+  transition:.15s;
+  letter-spacing:.01em;
+}
+.lbtn:hover{opacity:.88;transform:translateY(-1px)}
+.lbtn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.llang{
+  margin-top:16px;
+  padding-top:14px;
+  border-top:1px solid var(--bor);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+.llang select{
+  font-size:12px;
+  padding:4px 9px;
+  border:1px solid var(--bors);
+  border-radius:6px;
+  background:var(--sur2);
+  color:var(--txt);
+  cursor:pointer;
+}
+.lmsg{
+  border-radius:7px;
+  padding:9px 12px;
+  font-size:12.5px;
+  margin-bottom:14px;
+  display:none;
+}
+.lmsg.err{background:var(--red-bg);color:var(--red);border:1px solid currentColor;display:block}
+.lmsg.ok{background:var(--ok-bg);color:var(--ok);border:1px solid currentColor;display:block}
+</style>
+</head>
+<body>
+<script src="core.js"></script>
+<div id="box">
+  <div class="lhead">
+    <h1>📊 BP Generator</h1>
+    <p id="head-sub">Accedi o registrati per continuare</p>
+  </div>
+
+  <div class="ltabs">
+    <button class="ltab on" id="tab-login" onclick="showTab('login')">Accedi</button>
+    <button class="ltab" id="tab-reg" onclick="showTab('reg')">Registrati</button>
+  </div>
+
+  <div class="lbody">
+    <div id="msg" class="lmsg"></div>
+
+    <!-- LOGIN -->
+    <div id="f-login">
+      <div class="lfield">
+        <label for="login-user">Email</label>
+        <input type="email" id="login-user" placeholder="nome@azienda.it" autocomplete="email">
+      </div>
+      <div class="lfield">
+        <label for="login-pwd">Password</label>
+        <input type="password" id="login-pwd" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="lbtn" id="btn-login" onclick="doLogin()">Accedi →</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="f-reg" style="display:none">
+      <div class="lfield">
+        <label for="reg-nome">Nome completo</label>
+        <input type="text" id="reg-nome" placeholder="Mario Rossi">
+      </div>
+      <div class="lfield">
+        <label for="reg-user">Email</label>
+        <input type="email" id="reg-user" placeholder="nome@azienda.it" autocomplete="email">
+      </div>
+      <div class="lfield">
+        <label for="reg-pwd">Password</label>
+        <input type="password" id="reg-pwd" placeholder="almeno 6 caratteri" autocomplete="new-password">
+      </div>
+      <div class="lfield">
+        <label for="reg-pwd2">Conferma password</label>
+        <input type="password" id="reg-pwd2" placeholder="••••••••" autocomplete="new-password"
+          onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <button class="lbtn" id="btn-reg" onclick="doRegister()">Crea account →</button>
+    </div>
+
+    <!-- LINGUA -->
+    <div class="llang">
+      <span style="font-size:14px">🌐</span>
+      <select id="lang-sel" onchange="changeLang(this.value)">
+        <option value="it">🇮🇹 Italiano</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="fr">🇫🇷 Français</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<script>
+const UI = {
+  it:{ head:'Accedi o registrati per continuare', tab_in:'Accedi', tab_reg:'Registrati',
+       btn_in:'Accedi →', btn_reg:'Crea account →' },
+  en:{ head:'Sign in or register to continue', tab_in:'Sign in', tab_reg:'Register',
+       btn_in:'Sign in →', btn_reg:'Create account →' },
+  es:{ head:'Accede o regístrate para continuar', tab_in:'Acceder', tab_reg:'Registrarse',
+       btn_in:'Acceder →', btn_reg:'Crear cuenta →' },
+  fr:{ head:'Connectez-vous ou inscrivez-vous', tab_in:'Connexion', tab_reg:"S'inscrire",
+       btn_in:'Connexion →', btn_reg:'Créer un compte →' },
+};
+
+/* Traduzioni label campi */
+const LABELS = {
+  it:{ email:'Email', pwd:'Password', pwd2:'Conferma password', nome:'Nome completo' },
+  en:{ email:'Email', pwd:'Password', pwd2:'Confirm password', nome:'Full name' },
+  es:{ email:'Correo electrónico', pwd:'Contraseña', pwd2:'Confirmar contraseña', nome:'Nombre completo' },
+  fr:{ email:'Email', pwd:'Mot de passe', pwd2:'Confirmer le mot de passe', nome:'Nom complet' },
+};
+
+function changeLang(lang) {
+  D.lang = lang;
+  const u = UI[lang] || UI.it;
+  const l = LABELS[lang] || LABELS.it;
+  document.getElementById('head-sub').textContent  = u.head;
+  document.getElementById('tab-login').textContent = u.tab_in;
+  document.getElementById('tab-reg').textContent   = u.tab_reg;
+  document.getElementById('btn-login').textContent = u.btn_in;
+  document.getElementById('btn-reg').textContent   = u.btn_reg;
+  // Labels campi
+  document.querySelector('label[for="login-user"]').textContent = l.email;
+  document.querySelector('label[for="login-pwd"]').textContent  = l.pwd;
+  document.querySelector('label[for="reg-nome"]').textContent   = l.nome;
+  document.querySelector('label[for="reg-user"]').textContent   = l.email;
+  document.querySelector('label[for="reg-pwd"]').textContent    = l.pwd;
+  document.querySelector('label[for="reg-pwd2"]').textContent   = l.pwd2;
+}
+
+function showTab(tab) {
+  document.getElementById('f-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('f-reg').style.display   = tab === 'reg'   ? 'block' : 'none';
+  document.getElementById('tab-login').classList.toggle('on', tab === 'login');
+  document.getElementById('tab-reg').classList.toggle('on', tab === 'reg');
+  clearMsg();
+}
+
+function showMsg(txt, type = 'err') {
+  const el = document.getElementById('msg');
+  el.textContent = txt;
+  el.className = 'lmsg ' + type;
+}
+function clearMsg() {
+  const el = document.getElementById('msg');
+  el.className = 'lmsg';
+  el.textContent = '';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-user').value.trim();
+  const pwd   = document.getElementById('login-pwd').value;
+  if (!email || !pwd) { showMsg('Inserisci email e password'); return; }
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const d = await SB.signIn(email, pwd);
+    SESSION.accessToken  = d.access_token;
+    SESSION.refreshToken = d.refresh_token;
+    SESSION.user = d.user;
+    SB._token = d.access_token;
+    saveSession();
+    window.location.href = 'app.html';
+  } catch(e) {
+    showMsg(e.message.toLowerCase().includes('invalid')
+      ? 'Email o password errati'
+      : e.message);
+    btn.disabled = false;
+    btn.textContent = (UI[D.lang]||UI.it).btn_in;
+  }
+}
+
+async function doRegister() {
+  const nome  = document.getElementById('reg-nome').value.trim();
+  const email = document.getElementById('reg-user').value.trim();
+  const pwd   = document.getElementById('reg-pwd').value;
+  const pwd2  = document.getElementById('reg-pwd2').value;
+  if (!nome || !email || !pwd) { showMsg('Tutti i campi sono obbligatori'); return; }
+  if (pwd !== pwd2)  { showMsg('Le password non coincidono'); return; }
+  if (pwd.length < 6){ showMsg('Password minimo 6 caratteri'); return; }
+  const btn = document.getElementById('btn-reg');
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const d = await SB.signUp(email, pwd, { nome });
+    if (d.user && !d.session) {
+      showMsg('✅ Account creato! Controlla la tua email per confermare, poi accedi.', 'ok');
+      showTab('login'); return;
+    }
+    SESSION.accessToken  = d.session?.access_token;
+    SESSION.refreshToken = d.session?.refresh_token;
+    SESSION.user = d.user;
+    SB._token = d.session?.access_token;
+    saveSession();
+    window.location.href = 'app.html';
+  } catch(e) {
+    showMsg(e.message.includes('registered')
+      ? 'Questa email è già registrata'
+      : e.message);
+    btn.disabled = false;
+    btn.textContent = (UI[D.lang]||UI.it).btn_reg;
+  }
+}
+
+/* Auto-login se sessione ancora valida */
+(async () => {
+  if (loadSession()) {
+    try { await SB.getUser(); window.location.href = 'app.html'; }
+    catch { clearSession(); }
+  }
+})();
+</script>
+</body>
+</html>
