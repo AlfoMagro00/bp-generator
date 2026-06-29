@@ -193,22 +193,21 @@ textarea{resize:vertical;min-height:58px}
     <div class="auth-body">
       <div class="auth-err" id="auth-err"></div>
       <div class="auth-ok" id="auth-ok"></div>
+
+      <!-- FORM LOGIN -->
       <div id="form-login">
-        <div class="f"><label class="fl">Username</label><input type="text" id="login-user" placeholder="il_tuo_username" autocomplete="username"></div>
+        <div class="f"><label class="fl">Email</label><input type="email" id="login-user" placeholder="nome@email.it" autocomplete="email"></div>
         <div class="f"><label class="fl">Password</label><input type="password" id="login-pwd" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
         <button class="auth-btn" id="btn-login" onclick="doLogin()">Accedi →</button>
       </div>
+
+      <!-- FORM REGISTRAZIONE -->
       <div id="form-reg" style="display:none">
         <div class="f"><label class="fl">Nome completo</label><input type="text" id="reg-nome" placeholder="Mario Rossi"></div>
-        <div class="f"><label class="fl">Username</label><input type="text" id="reg-user" placeholder="mario.rossi" autocomplete="username"></div>
+        <div class="f"><label class="fl">Email</label><input type="email" id="reg-user" placeholder="nome@email.it" autocomplete="email"></div>
         <div class="f"><label class="fl">Password</label><input type="password" id="reg-pwd" placeholder="almeno 6 caratteri" autocomplete="new-password"></div>
-        <div class="f"><label class="fl">Conferma password</label><input type="password" id="reg-pwd2" placeholder="••••••••" onkeydown="if(event.key==='Enter')doRegister()"></div>
-        <div class="f"><label class="fl">Codice di registrazione</label><input type="text" id="reg-code" placeholder="Codice fornito dall'amministratore"></div>
-        <button class="auth-btn" onclick="doRegister()">Crea account →</button>
-      </div>
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bor)">
-        <p style="font-size:11px;color:var(--mut);text-align:center">Server: <span id="auth-srv-url" style="font-family:monospace">localhost:5000</span>
-          <button onclick="promptServer()" style="background:none;border:none;cursor:pointer;color:var(--acc-t);font-size:11px;text-decoration:underline">cambia</button></p>
+        <div class="f"><label class="fl">Conferma password</label><input type="password" id="reg-pwd2" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')doRegister()"></div>
+        <button class="auth-btn" id="btn-reg" onclick="doRegister()">Crea account →</button>
       </div>
     </div>
   </div>
@@ -244,11 +243,10 @@ textarea{resize:vertical;min-height:58px}
   </div>
 </div>
 
-<!-- SERVER STATUS -->
-<div id="server-cfg">
-  <div id="srv-dot" style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0"></div>
-  <span id="srv-url" style="font-family:monospace;font-size:11px;color:var(--mut)">localhost:5000</span>
-  <button onclick="promptServer()" style="background:none;border:none;cursor:pointer;color:var(--acc-t);font-size:11px;text-decoration:underline">modifica</button>
+<!-- server-cfg nascosto (non usato con Supabase) -->
+<div id="server-cfg" style="display:none">
+  <div id="srv-dot"></div>
+  <span id="srv-url"></span>
 </div>
 
 <nav id="nav">
@@ -1491,8 +1489,8 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 // ⚙️  CONFIGURAZIONE SUPABASE
 // Incolla qui i tuoi valori da supabase.com → Settings → API
 // ═══════════════════════════════════════════
-const SUPABASE_URL  = 'https://laejzfcajjeokdaskniv.supabase.co';   // ← sostituisci
-const SUPABASE_ANON = 'sb_publishable_UrIZJI83FL21ImFPLp4qQA_7R_Z32Tb';  // ← sostituisci (anon/public key)
+const SUPABASE_URL  = 'https://laejzfcajjeokdaskniv.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_UrIZJI83FL2IImFPLp4qQA_7R_Z3_placeholder'; // ← incolla qui la tua publishable key completa
 
 // ═══════════════════════════════════════════
 // SUPABASE CLIENT (leggero, senza SDK)
@@ -1665,8 +1663,10 @@ async function doLogin(){
     const aziende = await loadAziende();
     showCompanyPicker(aziende);
   } catch(e){
-    showAuthErr(e.message.includes('Invalid login')||e.message.includes('invalid_grant')
-      ? 'Email o password errati' : e.message);
+    showAuthErr(
+      e.message.includes('Invalid login') || e.message.includes('invalid_grant') || e.message.includes('Email not confirmed')
+        ? 'Email o password errati (o email non ancora confermata)' : e.message
+    );
   } finally {
     btn.disabled=false; btn.textContent='Accedi →';
   }
@@ -1680,15 +1680,15 @@ async function doRegister(){
   if(!nome||!email||!pwd){ showAuthErr('Tutti i campi sono obbligatori'); return; }
   if(pwd!==pwd2){ showAuthErr('Le password non coincidono'); return; }
   if(pwd.length<6){ showAuthErr('Password minimo 6 caratteri'); return; }
+  const btn = document.getElementById('btn-reg');
+  if(btn){ btn.disabled=true; btn.textContent='Registrazione in corso…'; }
   try {
     const d = await SB.signUp(email, pwd, { nome });
-    // Se email confirmation è attiva su Supabase mostra messaggio
     if(d.user && !d.session){
       showAuthOk('✅ Registrazione completata! Controlla la tua email per confermare l\'account, poi accedi.');
       showTab('login');
       return;
     }
-    // Altrimenti login diretto
     SESSION.accessToken  = d.session?.access_token;
     SESSION.refreshToken = d.session?.refresh_token;
     SESSION.user         = d.user;
@@ -1697,7 +1697,9 @@ async function doRegister(){
     document.getElementById('auth-overlay').style.display='none';
     showCompanyPicker([]);
   } catch(e){
-    showAuthErr(e.message.includes('already registered') ? 'Email già registrata' : e.message);
+    showAuthErr(e.message.includes('already registered') ? 'Email già registrata — prova ad accedere' : e.message);
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent='Crea account →'; }
   }
 }
 
@@ -2107,29 +2109,24 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   document.getElementById('nav').style.display='none';
   document.getElementById('main').style.display='none';
   document.getElementById('topbar').style.display='none';
-  document.getElementById('server-cfg').style.display='none'; // non più necessario
+  document.getElementById('server-cfg').style.display='none';
 
   // Carica SheetJS per import Excel
   const s=document.createElement('script');
   s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
   document.head.appendChild(s);
 
-  // Aggiorna campo URL nel form login (non c'è più il server)
-  const urlEl=document.getElementById('auth-srv-url');
-  if(urlEl) urlEl.closest('div')?.remove();
-
   // Controlla sessione salvata
   if(loadSession()){
     try {
-      await SB.getUser(); // verifica token ancora valido
+      await SB.getUser();
       const aziende = await loadAziende();
       document.getElementById('auth-overlay').style.display='none';
       showCompanyPicker(aziende);
     } catch {
-      clearSession(); // token scaduto
+      clearSession();
     }
   }
-  // altrimenti rimane visible il login overlay
 });
 </body>
 </html>
