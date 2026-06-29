@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Home</title>
+<link rel="stylesheet" href="_shared.css">
+<style>body{padding:22px 24px 40px}</style>
+</head>
+<body>
+<script src="core.js"></script>
+<script src="_frame.js"></script>
+
+<h2>🏠 Home — Configurazione anni</h2>
+<p class="sub">Definisci gli anni storici (fino a 5) e il numero di anni previsionali.</p>
+
+<div class="card">
+  <h3>Anni storici</h3>
+  <div class="fr4">
+    <div class="f"><label class="fl">1° Anno storico</label><input type="number" id="y1" value="2021" onchange="syncYrs()"></div>
+    <div class="f"><label class="fl">2° Anno storico</label><input type="number" id="y2" value="2022" onchange="syncYrs()"></div>
+    <div class="f"><label class="fl">3° Anno storico</label><input type="number" id="y3" value="2023" onchange="syncYrs()"></div>
+    <div class="f"><label class="fl">4° Anno storico</label><input type="number" id="y4" value="2024" onchange="syncYrs()"></div>
+  </div>
+  <div class="fr2">
+    <div class="f"><label class="fl">Anno attuale (5°)</label><input type="number" id="ya" value="2025" onchange="syncYrs()"></div>
+    <div class="f"><label class="fl">Anni previsionali</label>
+      <select id="nprev" onchange="syncYrs()">
+        <option value="3">3 anni</option>
+        <option value="5" selected>5 anni</option>
+        <option value="10">10 anni</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Anni previsionali (calcolati automaticamente)</h3>
+  <div id="prev-years" class="fr4" style="gap:8px"></div>
+</div>
+
+<div class="card">
+  <h3>Formato</h3>
+  <div class="fr3">
+    <div class="f"><label class="fl">Valuta</label>
+      <select id="currency" onchange="sendToParent({currency:this.value})">
+        <option value="€">EUR €</option>
+        <option value="$">USD $</option>
+        <option value="£">GBP £</option>
+      </select>
+    </div>
+    <div class="f"><label class="fl">Unità di misura valori</label>
+      <select id="unit">
+        <option value="1">Unità (1)</option>
+        <option value="1000" selected>Migliaia (k)</option>
+        <option value="1000000">Milioni (M)</option>
+      </select>
+    </div>
+    <div class="f"><label class="fl">Lingua relazione</label>
+      <select id="lang-home" onchange="changeLang(this.value)">
+        <option value="it">🇮🇹 Italiano</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="fr">🇫🇷 Français</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="btn-row">
+  <button class="btn pri" onclick="requestSave()">💾 Salva configurazione</button>
+</div>
+
+<script>
+function syncYrs() {
+  D.hist = ['y1','y2','y3','y4','ya'].map(id => +document.getElementById(id).value);
+  D.nPrev = +document.getElementById('nprev').value;
+  const base = D.hist[4];
+  D.prev = Array.from({length:D.nPrev}, (_,i) => base+i+1);
+  // Render preview
+  const w = document.getElementById('prev-years');
+  w.innerHTML = D.prev.map(y => `<div style="padding:6px 10px;background:var(--acc-bg);border-radius:var(--r);color:var(--acc-t);font-weight:700;text-align:center">${y}</div>`).join('');
+  // Invia al parent
+  sendToParent({ hist:[...D.hist], prev:[...D.prev], nPrev:D.nPrev });
+  fitHeight();
+}
+
+function changeLang(lang) {
+  D.lang = lang;
+  sendToParent({ lang });
+  if(APP) APP.postMessage({ type:'LANG', lang }, '*');
+}
+
+function onInit() {
+  // Ripristina valori anni
+  const keys = ['y1','y2','y3','y4','ya'];
+  keys.forEach((k,i) => { document.getElementById(k).value = D.hist[i] || ''; });
+  const nprev = document.getElementById('nprev');
+  nprev.value = D.nPrev || 5;
+  if (D.lang) document.getElementById('lang-home').value = D.lang;
+  syncYrs();
+}
+
+// Init standalone
+syncYrs();
+</script>
+</body>
+</html>

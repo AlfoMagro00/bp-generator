@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Narrativo</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+body{padding:22px 24px 40px}
+.swot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.swot-cell{border-radius:var(--r);padding:12px}
+.swot-cell label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px}
+.tab-btn{padding:8px 16px;border:1px solid var(--bors);border-radius:var(--r);cursor:pointer;font-size:12.5px;background:var(--sur);color:var(--mut)}
+.tab-btn.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+</style>
+</head>
+<body>
+<script src="core.js"></script>
+<script src="_frame.js"></script>
+
+<h2>📝 Testi, SWOT & TAM/SAM/SOM</h2>
+<p class="sub">Sezioni narrative del business plan — fogli Lav_4, SWOT, Lav_11.</p>
+
+<!-- NAV TABS -->
+<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px">
+  <button class="tab-btn on" id="tb-desc"  onclick="showSection('desc')">📄 Descrizioni</button>
+  <button class="tab-btn"    id="tb-swot"  onclick="showSection('swot')">🔍 SWOT</button>
+  <button class="tab-btn"    id="tb-tows"  onclick="showSection('tows')">♟ TOWS</button>
+  <button class="tab-btn"    id="tb-tam"   onclick="showSection('tam')">📐 TAM/SAM/SOM</button>
+</div>
+
+<!-- DESCRIZIONI -->
+<div id="sec-desc">
+  <div id="desc-wrap"></div>
+</div>
+
+<!-- SWOT -->
+<div id="sec-swot" style="display:none">
+  <div class="card">
+    <h3>Analisi SWOT</h3>
+    <div class="swot-grid">
+      <div class="swot-cell" style="background:#dcfce7">
+        <label style="color:#166534">💪 Punti di forza (Strengths)</label>
+        <textarea id="sw-s" rows="5" style="background:rgba(255,255,255,.7)" onchange="saveSwot()"></textarea>
+      </div>
+      <div class="swot-cell" style="background:#fef3c7">
+        <label style="color:#92400e">⚠️ Debolezze (Weaknesses)</label>
+        <textarea id="sw-w" rows="5" style="background:rgba(255,255,255,.7)" onchange="saveSwot()"></textarea>
+      </div>
+      <div class="swot-cell" style="background:#dbeafe">
+        <label style="color:#1e40af">🚀 Opportunità (Opportunities)</label>
+        <textarea id="sw-o" rows="5" style="background:rgba(255,255,255,.7)" onchange="saveSwot()"></textarea>
+      </div>
+      <div class="swot-cell" style="background:#ffe4e6">
+        <label style="color:#9f1239">⚡ Minacce (Threats)</label>
+        <textarea id="sw-t" rows="5" style="background:rgba(255,255,255,.7)" onchange="saveSwot()"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOWS -->
+<div id="sec-tows" style="display:none">
+  <div class="card">
+    <h3>Matrice TOWS — Strategie</h3>
+    <p class="sub" style="margin-bottom:14px">Combina SWOT per generare strategie: SO=Sfrutta forze+opportunità, ST=Usa forze vs minacce, WO=Supera debolezze con opportunità, WT=Minimizza debolezze e minacce.</p>
+    <div class="swot-grid">
+      <div class="swot-cell" style="background:#f0fdf4">
+        <label style="color:#166534">✅ SO — Strategie offensive</label>
+        <textarea id="sw-so" rows="5" style="background:rgba(255,255,255,.7)" onchange="saveSwot()"></textarea>
+      </div>
+      <div class="swot-cell" style="background:#fffbeb">
+        <label style="color:#92400e">🛡 ST — Strategie di diversificazione</label>
+        <textarea id="sw-st" rows="5" style="background:rgba(255,255,255,.7)" onchange="saveSwot()"></textarea>
+      </div>
+      <div class="swot-cell" style="background:#eff6ff">
+        <label style="color:#1e40af">🔄 WO — Strategie di riposizionamento</label>
+        <textarea id="sw-wo" rows="5" style="background:rgba(255,255,255,.7)" onchange="saveSwot()"></textarea>
+      </div>
+      <div class="swot-cell" style="background:#fef2f2">
+        <label style="color:#9f1239">⚓ WT — Strategie difensive</label>
+        <textarea id="sw-wt" rows="5" style="background:rgba(255,255,255,.7)" onchange="saveSwot()"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAM/SAM/SOM -->
+<div id="sec-tam" style="display:none">
+  <div class="card">
+    <h3>TAM — Total Addressable Market</h3>
+    <div class="fr3">
+      <div class="f"><label class="fl">N° potenziali clienti nel mercato</label><input type="number" id="tam-n" value="0" min="0" onchange="calcTAM()"></div>
+      <div class="f"><label class="fl">Prezzo medio per cliente (€/anno)</label><input type="number" id="tam-p" value="0" min="0" step="10" onchange="calcTAM()"></div>
+      <div class="f"><label class="fl" style="color:var(--acc-t);font-weight:700">TAM calcolato</label>
+        <div id="tam-result" style="padding:6px 9px;background:var(--acc-bg);border-radius:var(--r);font-weight:700;color:var(--acc-t);font-size:14px">€ 0</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>SAM — Serviceable Addressable Market</h3>
+    <div class="fr3">
+      <div class="f"><label class="fl">Metodo SAM</label>
+        <select id="sam-mode" onchange="calcTAM()">
+          <option value="pct">% del TAM</option>
+          <option value="abs">Valore assoluto (€)</option>
+        </select>
+      </div>
+      <div class="f"><label class="fl">Valore</label><input type="number" id="sam-val" value="10" step="0.1" onchange="calcTAM()"></div>
+      <div class="f"><label class="fl" style="color:var(--ok);font-weight:700">SAM calcolato</label>
+        <div id="sam-result" style="padding:6px 9px;background:var(--ok-bg);border-radius:var(--r);font-weight:700;color:var(--ok);font-size:14px">€ 0</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>SOM — Serviceable Obtainable Market (anno per anno)</h3>
+    <p style="font-size:12.5px;color:var(--mut);margin-bottom:10px">Definisci la quota di mercato acquisibile ogni anno (previsionali).</p>
+    <table class="tbl" id="som-tbl"></table>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn sm" onclick="addSomRow()">+ Aggiungi anno</button>
+    </div>
+  </div>
+  <!-- Grafico riepilogo -->
+  <div class="card">
+    <h3>Riepilogo visivo</h3>
+    <div id="tam-visual" style="display:flex;gap:12px;flex-wrap:wrap"></div>
+  </div>
+</div>
+
+<script>
+const DESC_DEFS = [
+  {id:'desc1',lbl:'Descrizione del progetto imprenditoriale',ph:'Descrivi brevemente il progetto, la visione e la mission dell\'azienda...'},
+  {id:'desc2',lbl:'Strategia realizzata e futura',ph:'Come l\'azienda ha sviluppato la propria strategia finora e come intende evolverla...'},
+  {id:'desc3',lbl:'Dimensione e potenziale del mercato',ph:'Analisi del mercato di riferimento, dimensioni, tendenze...'},
+  {id:'desc4',lbl:'Analisi della concorrenza',ph:'Principali concorrenti, posizionamento competitivo, vantaggi differenziali...'},
+  {id:'desc5',lbl:'Struttura organizzativa',ph:'Team, ruoli, competenze chiave, struttura societaria...'},
+  {id:'desc6',lbl:'Piano operativo e produttivo',ph:'Processi produttivi, supply chain, fornitori strategici...'},
+  {id:'desc7',lbl:'Piano di marketing e vendite',ph:'Strategie go-to-market, canali di distribuzione, pricing...'},
+  {id:'desc8',lbl:'Piano degli investimenti',ph:'Investimenti previsti, fonti di finanziamento, piano di utilizzo dei fondi...'},
+  {id:'desc9',lbl:'Analisi dei rischi',ph:'Principali rischi operativi, di mercato, finanziari e le contromisure...'},
+  {id:'altro1',lbl:'Sezione aggiuntiva 1',ph:'Testo libero...'},
+  {id:'altro2',lbl:'Sezione aggiuntiva 2',ph:'Testo libero...'},
+];
+
+function renderDescs(){
+  const w = document.getElementById('desc-wrap');
+  w.innerHTML = DESC_DEFS.map((d,i)=>`
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <input type="checkbox" id="incl-${d.id}" ${D.lav4[i]?.incl?'checked':''} onchange="D.lav4[${i}].incl=this.checked;sendToParent({lav4:[...D.lav4]})">
+        <label for="incl-${d.id}" style="font-weight:600;font-size:13px;cursor:pointer">${d.lbl}</label>
+        <span style="font-size:11px;color:var(--mut);margin-left:auto">${D.lav4[i]?.incl?'✅ In relazione':'⬜ Escluso'}</span>
+      </div>
+      <textarea id="txt-${d.id}" rows="4" placeholder="${d.ph}"
+        style="font-size:12.5px"
+        onchange="D.lav4[${i}].txt=this.value;sendToParent({lav4:[...D.lav4]})">${esc(D.lav4[i]?.txt||'')}</textarea>
+    </div>`).join('');
+  fitHeight();
+}
+
+function showSection(sec){
+  ['desc','swot','tows','tam'].forEach(s=>{
+    document.getElementById('sec-'+s).style.display=s===sec?'block':'none';
+    document.getElementById('tb-'+s).classList.toggle('on',s===sec);
+  });
+  fitHeight();
+}
+
+function saveSwot(){
+  ['s','w','o','t','so','st','wo','wt'].forEach(k=>{
+    const el=document.getElementById('sw-'+k);
+    if(el) D.swot[k]=el.value;
+  });
+  sendToParent({swot:{...D.swot}});
+}
+
+function loadSwot(){
+  ['s','w','o','t','so','st','wo','wt'].forEach(k=>{
+    const el=document.getElementById('sw-'+k);
+    if(el) el.value=D.swot[k]||'';
+  });
+}
+
+// TAM/SAM/SOM
+function calcTAM(){
+  const n=parseFloat(document.getElementById('tam-n').value)||0;
+  const p=parseFloat(document.getElementById('tam-p').value)||0;
+  const tam=n*p;
+  D.tam.n=n; D.tam.p=p;
+  document.getElementById('tam-result').textContent='€ '+fmtN(tam);
+  const mode=document.getElementById('sam-mode').value;
+  const samVal=parseFloat(document.getElementById('sam-val').value)||0;
+  D.tam.samPct=mode==='pct'?samVal:D.tam.samPct;
+  D.tam.samAbs=mode==='abs'?samVal:0;
+  const sam=mode==='pct'?tam*samVal/100:samVal;
+  document.getElementById('sam-result').textContent='€ '+fmtN(sam);
+  renderVisual(tam,sam);
+  sendToParent({tam:{...D.tam}});
+}
+
+function renderSomTbl(){
+  const t=document.getElementById('som-tbl');
+  if(!D.tam.somRows||!D.tam.somRows.length){
+    // Init con anni previsionali
+    D.tam.somRows=D.prev.map(y=>({y,pct:1,abs:0,mode:'pct'}));
+  }
+  let h=`<thead><tr><th>Anno</th><th>Modalità</th><th>Valore (%o €)</th><th>SOM calcolato</th><th></th></tr></thead><tbody>`;
+  const n=parseFloat(document.getElementById('tam-n').value)||0;
+  const p=parseFloat(document.getElementById('tam-p').value)||0;
+  const tam=n*p;
+  const mode=document.getElementById('sam-mode').value;
+  const samVal=parseFloat(document.getElementById('sam-val').value)||0;
+  const sam=mode==='pct'?tam*samVal/100:samVal;
+  D.tam.somRows.forEach((r,i)=>{
+    const som=r.mode==='pct'?sam*r.pct/100:r.abs;
+    h+=`<tr>
+      <td>${r.y}</td>
+      <td><select style="font-size:11.5px;padding:2px 5px" onchange="D.tam.somRows[${i}].mode=this.value;sendToParent({tam:{...D.tam}});renderSomTbl()">
+        <option value="pct"${r.mode==='pct'?' selected':''}>% del SAM</option>
+        <option value="abs"${r.mode==='abs'?' selected':''}>Assoluto €</option>
+      </select></td>
+      <td><input type="number" value="${r.mode==='pct'?r.pct:r.abs}" step="${r.mode==='pct'?0.5:1000}" style="width:80px;padding:3px 6px;font-size:12px"
+        onchange="D.tam.somRows[${i}].${r.mode==='pct'?'pct':'abs'}=parseFloat(this.value)||0;sendToParent({tam:{...D.tam}});renderSomTbl()"></td>
+      <td style="font-weight:600;color:var(--ok)">€ ${fmtN(som)}</td>
+      <td><button class="btn sm" onclick="D.tam.somRows.splice(${i},1);sendToParent({tam:{...D.tam}});renderSomTbl()" style="color:var(--red)">✕</button></td>
+    </tr>`;
+  });
+  h+='</tbody>';
+  t.innerHTML=h;
+  fitHeight();
+}
+
+function addSomRow(){
+  const lastY=D.tam.somRows?.length?D.tam.somRows[D.tam.somRows.length-1].y:D.hist[4];
+  D.tam.somRows=D.tam.somRows||[];
+  D.tam.somRows.push({y:lastY+1,pct:1,abs:0,mode:'pct'});
+  sendToParent({tam:{...D.tam}});
+  renderSomTbl();
+}
+
+function renderVisual(tam,sam){
+  const maxV=tam||1;
+  const w=document.getElementById('tam-visual');
+  const pct=v=>Math.max(4,Math.round(v/maxV*100));
+  w.innerHTML=`
+    <div style="display:flex;align-items:flex-end;gap:16px;height:100px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+        <div style="background:var(--acc-bg);border:1px solid var(--acc);border-radius:6px 6px 0 0;width:80px;height:${pct(tam)}px;min-height:8px"></div>
+        <div style="font-size:11px;color:var(--acc-t);font-weight:700;text-align:center">TAM<br>€ ${fmtN(tam)}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+        <div style="background:var(--ok-bg);border:1px solid var(--ok);border-radius:6px 6px 0 0;width:80px;height:${pct(sam)}px;min-height:8px"></div>
+        <div style="font-size:11px;color:var(--ok);font-weight:700;text-align:center">SAM<br>€ ${fmtN(sam)}</div>
+      </div>
+    </div>`;
+}
+
+function onInit(){
+  renderDescs();
+  loadSwot();
+  // TAM
+  document.getElementById('tam-n').value=D.tam.n||0;
+  document.getElementById('tam-p').value=D.tam.p||0;
+  if(D.tam.samAbs>0){
+    document.getElementById('sam-mode').value='abs';
+    document.getElementById('sam-val').value=D.tam.samAbs;
+  } else {
+    document.getElementById('sam-mode').value='pct';
+    document.getElementById('sam-val').value=D.tam.samPct||10;
+  }
+  renderSomTbl();
+  calcTAM();
+  fitHeight();
+}
+
+function onLangChange(){ renderDescs(); }
+
+renderDescs();
+loadSwot();
+renderSomTbl();
+calcTAM();
+</script>
+</body>
+</html>

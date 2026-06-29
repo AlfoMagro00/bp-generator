@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finanziamenti</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+body{padding:22px 24px 40px}
+.loan-card{background:var(--sur);border:1px solid var(--bor);border-radius:11px;padding:16px 18px;margin-bottom:12px}
+.loan-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.loan-head h4{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.loan-toggle{font-size:11px;color:var(--mut)}
+.loan-body{margin-top:14px}
+.pill{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.pill.fr{background:var(--acc-bg);color:var(--acc-t)}
+.pill.it{background:var(--ok-bg);color:var(--ok)}
+.kpi-row{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
+.kpi-box{background:var(--sur2);border:1px solid var(--bor);border-radius:var(--r);padding:8px 12px;text-align:center;min-width:90px}
+.kpi-val{font-size:16px;font-weight:700;color:var(--acc-t)}
+.kpi-lbl{font-size:10px;color:var(--mut);margin-top:2px}
+</style>
+</head>
+<body>
+<script src="core.js"></script>
+<script src="_frame.js"></script>
+
+<h2>🏦 Finanziamenti</h2>
+<p class="sub">Piani di ammortamento: 4 mutui a rata costante (francese) + 1 a quota capitale costante (italiana).</p>
+
+<div id="loans-wrap"></div>
+
+<div class="card" style="background:var(--sur2)">
+  <h3>Riepilogo oneri finanziari</h3>
+  <div class="tbl-wrap"><table class="tbl" id="riepilogo-tbl"></table></div>
+</div>
+
+<script>
+function renderLoans(){
+  const w = document.getElementById('loans-wrap');
+  w.innerHTML = D.loans.map((l,i) => {
+    const isFr = l.type === 'fr';
+    const piano = l.active && l.cap > 0 && l.yr > 0 && l.rate > 0 ? calcPiano(l) : null;
+    const rata = piano ? piano[0].rata : null;
+    return `
+    <div class="loan-card" id="lcard-${i}">
+      <div class="loan-head" onclick="toggleLoan(${i})">
+        <h4>
+          <span class="pill ${isFr?'fr':'it'}">${isFr?'🏛 Francese':'🇮🇹 Italiana'}</span>
+          ${esc(l.label||('Mutuo '+(i+1)))}
+          ${l.active&&l.cap>0?`<span style="color:var(--mut);font-weight:400;font-size:12px">— € ${fmtN(l.cap)}</span>`:''}
+        </h4>
+        <span class="loan-toggle" id="ltog-${i}">▼ Espandi</span>
+      </div>
+      <div class="loan-body" id="lbody-${i}" style="display:none">
+        <div class="fr3" style="margin-bottom:10px">
+          <div class="f"><label class="fl">Etichetta</label>
+            <input type="text" value="${esc(l.label||'')}" placeholder="es. Banca Intesa" onchange="D.loans[${i}].label=this.value;sendToParent({loans:[...D.loans]});renderLoans()">
+          </div>
+          <div class="f"><label class="fl">Attivo</label>
+            <select onchange="D.loans[${i}].active=this.value==='1';sendToParent({loans:[...D.loans]});renderLoans()">
+              <option value="0"${!l.active?' selected':''}>No</option>
+              <option value="1"${l.active?' selected':''}>Sì</option>
+            </select>
+          </div>
+          <div class="f"><label class="fl">Tipo</label>
+            <select onchange="D.loans[${i}].type=this.value;sendToParent({loans:[...D.loans]});renderLoans()">
+              <option value="fr"${isFr?' selected':''}>Francese (rata costante)</option>
+              <option value="it"${!isFr?' selected':''}>Italiana (quota cap. costante)</option>
+            </select>
+          </div>
+        </div>
+        <div class="fr3" style="margin-bottom:10px">
+          <div class="f"><label class="fl">Capitale (€)</label>
+            <input type="number" value="${l.cap||''}" min="0" step="1000" onchange="D.loans[${i}].cap=parseFloat(this.value)||0;sendToParent({loans:[...D.loans]});renderLoans()">
+          </div>
+          <div class="f"><label class="fl">Durata (anni)</label>
+            <input type="number" value="${l.yr||''}" min="1" max="30" step="1" onchange="D.loans[${i}].yr=parseInt(this.value)||0;sendToParent({loans:[...D.loans]});renderLoans()">
+          </div>
+          <div class="f"><label class="fl">Tasso annuo (%)</label>
+            <input type="number" value="${l.rate||''}" min="0" max="30" step="0.1" onchange="D.loans[${i}].rate=parseFloat(this.value)||0;sendToParent({loans:[...D.loans]});renderLoans()">
+          </div>
+        </div>
+        ${piano ? renderKpiRow(l, piano, rata) : '<p style="font-size:12.5px;color:var(--mut)">Completa i campi per visualizzare il piano.</p>'}
+        ${piano ? renderPianoTbl(piano, isFr) : ''}
+      </div>
+    </div>`;
+  }).join('');
+  renderRiepilogo();
+  fitHeight();
+}
+
+function toggleLoan(i){
+  const body = document.getElementById(`lbody-${i}`);
+  const tog  = document.getElementById(`ltog-${i}`);
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  tog.textContent = open ? '▼ Espandi' : '▲ Chiudi';
+  fitHeight();
+}
+
+function calcPiano(l){
+  const n = l.yr * 12;
+  const r = l.rate / 100 / 12;
+  const cap = l.cap;
+  const piano = [];
+  let residuo = cap;
+  if(l.type === 'fr'){
+    // Ammortamento francese: rata costante
+    const rata = r > 0 ? cap * r * Math.pow(1+r,n) / (Math.pow(1+r,n)-1) : cap/n;
+    for(let m=1;m<=n;m++){
+      const int = residuo * r;
+      const quot = rata - int;
+      residuo -= quot;
+      piano.push({mese:m, rata, int, quot, residuo:Math.max(0,residuo)});
+    }
+  } else {
+    // Ammortamento italiano: quota capitale costante
+    const quot = cap / n;
+    for(let m=1;m<=n;m++){
+      const int = residuo * r;
+      const rata = quot + int;
+      residuo -= quot;
+      piano.push({mese:m, rata, int, quot, residuo:Math.max(0,residuo)});
+    }
+  }
+  return piano;
+}
+
+function renderKpiRow(l, piano, rata){
+  const totInt = piano.reduce((a,r)=>a+r.int,0);
+  const totPag = piano.reduce((a,r)=>a+r.rata,0);
+  const taegApprox = (totInt/l.cap/l.yr*100).toFixed(2);
+  return `<div class="kpi-row">
+    <div class="kpi-box"><div class="kpi-val">€ ${fmtN(rata)}</div><div class="kpi-lbl">Rata mensile</div></div>
+    <div class="kpi-box"><div class="kpi-val">€ ${fmtN(rata*12)}</div><div class="kpi-lbl">Onere annuo</div></div>
+    <div class="kpi-box"><div class="kpi-val">€ ${fmtN(totInt)}</div><div class="kpi-lbl">Totale interessi</div></div>
+    <div class="kpi-box"><div class="kpi-val">€ ${fmtN(totPag)}</div><div class="kpi-lbl">Totale pagato</div></div>
+    <div class="kpi-box"><div class="kpi-val">${taegApprox}%</div><div class="kpi-lbl">Costo effettivo approx.</div></div>
+  </div>`;
+}
+
+function renderPianoTbl(piano, isFr){
+  // Mostra piano annuale (aggregato per anno)
+  const anni = {};
+  piano.forEach(r => {
+    const a = Math.ceil(r.mese/12);
+    if(!anni[a]) anni[a] = {anno:a, rate:0, int:0, quot:0, residuo:0, n:0};
+    anni[a].rate += r.rata;
+    anni[a].int  += r.int;
+    anni[a].quot += r.quot;
+    anni[a].residuo = r.residuo;
+    anni[a].n++;
+  });
+  const rows = Object.values(anni);
+  let h = `<div style="margin-top:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:600;color:var(--mut)">Piano di ammortamento (aggregato annuale)</span>
+      <button class="btn sm" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent.includes('Mostra')?'Nascondi piano':'Mostra piano mensile'">Mostra piano mensile</button>
+      <div style="display:none">`;
+  h += `<div class="tbl-wrap"><table class="tbl" style="font-size:11px">
+    <thead><tr><th>Mese</th><th>Rata</th><th>Quota cap.</th><th>Interessi</th><th>Residuo</th></tr></thead><tbody>`;
+  piano.forEach(r => {
+    h += `<tr><td>${r.mese}</td><td>€ ${fmtN(r.rata)}</td><td>€ ${fmtN(r.quot)}</td><td class="neg">€ ${fmtN(r.int)}</td><td>€ ${fmtN(r.residuo)}</td></tr>`;
+  });
+  h += `</tbody></table></div></div></div>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>Anno</th><th>Totale rata</th><th>Quota cap.</th><th>Interessi</th><th>Residuo fine anno</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td><strong>Anno ${r.anno}</strong></td>
+      <td>€ ${fmtN(r.rate)}</td>
+      <td>€ ${fmtN(r.quot)}</td>
+      <td class="neg">€ ${fmtN(r.int)}</td>
+      <td>€ ${fmtN(r.residuo)}</td>
+    </tr>`).join('')}</tbody>
+    <tfoot><tr class="sep">
+      <td><strong>Totale</strong></td>
+      <td>€ ${fmtN(rows.reduce((a,r)=>a+r.rate,0))}</td>
+      <td>€ ${fmtN(rows.reduce((a,r)=>a+r.quot,0))}</td>
+      <td class="neg">€ ${fmtN(rows.reduce((a,r)=>a+r.int,0))}</td>
+      <td>—</td>
+    </tr></tfoot>
+  </table></div>`;
+  return h;
+}
+
+function renderRiepilogo(){
+  const t = document.getElementById('riepilogo-tbl');
+  const allYrs = [...D.hist, ...D.prev];
+  let h = `<thead><tr><th>Finanziamento</th>${allYrs.map(y=>`<th>${y}</th>`).join('')}</tr></thead><tbody>`;
+  let totali = {};
+  allYrs.forEach(y => totali[y]=0);
+
+  D.loans.forEach((l,i) => {
+    if(!l.active || l.cap<=0 || l.yr<=0 || l.rate<=0) return;
+    const piano = calcPiano(l);
+    h += `<tr><td>${esc(l.label||'Mutuo '+(i+1))}</td>`;
+    allYrs.forEach(y => {
+      // Calcola oneri interessi per anno (primo anno = anno corrente o hist[4])
+      const startYear = D.hist[4];
+      const yearOffset = y - startYear;
+      if(yearOffset < 0 || yearOffset >= l.yr){
+        h += '<td>—</td>'; return;
+      }
+      const mStart = yearOffset * 12 + 1;
+      const mEnd   = mStart + 11;
+      const intAnno = piano.filter(r=>r.mese>=mStart&&r.mese<=mEnd).reduce((a,r)=>a+r.int,0);
+      totali[y] += intAnno;
+      h += `<td class="neg">${intAnno>0?'€ '+fmtN(intAnno):'—'}</td>`;
+    });
+    h += '</tr>';
+  });
+  h += `<tr class="sep"><td><strong>Totale interessi</strong></td>`;
+  allYrs.forEach(y => h += `<td class="neg"><strong>${totali[y]>0?'€ '+fmtN(totali[y]):'—'}</strong></td>`);
+  h += '</tr></tbody>';
+  t.innerHTML = h;
+}
+
+function onInit(){ renderLoans(); }
+
+renderLoans();
+</script>
+</body>
+</html>

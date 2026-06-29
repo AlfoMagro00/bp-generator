@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BP Generator — Accesso</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+#box{background:var(--sur);border:1px solid var(--bor);border-radius:14px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.1)}
+.head{background:linear-gradient(135deg,#1e3a8a,#2563eb);padding:24px;text-align:center;color:#fff}
+.head h1{font-size:20px;font-weight:800;margin-bottom:3px}
+.head p{font-size:12px;opacity:.8}
+.tabs{display:flex;border-bottom:1px solid var(--bor)}
+.tab{flex:1;padding:12px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--mut);border:none;background:none;transition:.12s}
+.tab.on{color:var(--acc-t);border-bottom:2px solid var(--acc);background:var(--acc-bg)}
+.body{padding:22px}
+.auth-btn{width:100%;padding:10px;background:var(--acc);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;transition:.15s}
+.auth-btn:hover{opacity:.87}.auth-btn:disabled{opacity:.5;cursor:not-allowed}
+</style>
+</head>
+<body>
+<script src="core.js"></script>
+<div id="box">
+  <div class="head">
+    <h1>📊 BP Generator</h1>
+    <p id="head-sub">Accedi o registrati per continuare</p>
+  </div>
+  <div class="tabs">
+    <button class="tab on" id="tab-login" onclick="showTab('login')">Accedi</button>
+    <button class="tab" id="tab-reg" onclick="showTab('reg')">Registrati</button>
+  </div>
+  <div class="body">
+    <div id="msg"></div>
+    <!-- LOGIN -->
+    <div id="f-login">
+      <div class="f"><label class="fl">Email</label><input type="email" id="login-user" placeholder="nome@email.it" autocomplete="email"></div>
+      <div class="f"><label class="fl">Password</label><input type="password" id="login-pwd" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="auth-btn" id="btn-login" onclick="doLogin()">Accedi →</button>
+    </div>
+    <!-- REGISTER -->
+    <div id="f-reg" style="display:none">
+      <div class="f"><label class="fl">Nome completo</label><input type="text" id="reg-nome" placeholder="Mario Rossi"></div>
+      <div class="f"><label class="fl">Email</label><input type="email" id="reg-user" placeholder="nome@email.it" autocomplete="email"></div>
+      <div class="f"><label class="fl">Password</label><input type="password" id="reg-pwd" placeholder="almeno 6 caratteri" autocomplete="new-password"></div>
+      <div class="f"><label class="fl">Conferma password</label><input type="password" id="reg-pwd2" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')doRegister()"></div>
+      <button class="auth-btn" id="btn-reg" onclick="doRegister()">Crea account →</button>
+    </div>
+    <!-- LANG -->
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bor);display:flex;align-items:center;justify-content:center;gap:8px">
+      <span style="font-size:11px;color:var(--mut)">🌐</span>
+      <select id="lang-sel" onchange="changeLang(this.value)" style="font-size:11px;padding:3px 7px;border:1px solid var(--bors);border-radius:var(--r);background:var(--sur2)">
+        <option value="it">Italiano</option>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+      </select>
+    </div>
+  </div>
+</div>
+<script>
+const UI = {
+  it:{head:'Accedi o registrati per continuare',tab_in:'Accedi',tab_reg:'Registrati',btn_in:'Accedi →',btn_reg:'Crea account →',
+      email:'Email',pwd:'Password',pwd2:'Conferma password',nome:'Nome completo'},
+  en:{head:'Sign in or register to continue',tab_in:'Sign in',tab_reg:'Register',btn_in:'Sign in →',btn_reg:'Create account →',
+      email:'Email',pwd:'Password',pwd2:'Confirm password',nome:'Full name'},
+  es:{head:'Accede o regístrate para continuar',tab_in:'Acceder',tab_reg:'Registrarse',btn_in:'Acceder →',btn_reg:'Crear cuenta →',
+      email:'Correo electrónico',pwd:'Contraseña',pwd2:'Confirmar contraseña',nome:'Nombre completo'},
+  fr:{head:'Connectez-vous ou inscrivez-vous',tab_in:'Connexion',tab_reg:'S\'inscrire',btn_in:'Connexion →',btn_reg:'Créer un compte →',
+      email:'Email',pwd:'Mot de passe',pwd2:'Confirmer le mot de passe',nome:'Nom complet'},
+};
+
+function changeLang(lang){
+  D.lang=lang;
+  const u=UI[lang]||UI.it;
+  document.getElementById('head-sub').textContent=u.head;
+  document.getElementById('tab-login').textContent=u.tab_in;
+  document.getElementById('tab-reg').textContent=u.tab_reg;
+  document.getElementById('btn-login').textContent=u.btn_in;
+  document.getElementById('btn-reg').textContent=u.btn_reg;
+}
+
+function showTab(tab){
+  document.getElementById('f-login').style.display=tab==='login'?'block':'none';
+  document.getElementById('f-reg').style.display=tab==='reg'?'block':'none';
+  document.getElementById('tab-login').classList.toggle('on',tab==='login');
+  document.getElementById('tab-reg').classList.toggle('on',tab==='reg');
+  document.getElementById('msg').innerHTML='';
+}
+
+function showMsg(txt,type='err'){
+  document.getElementById('msg').innerHTML=`<div class="alert ${type}">${esc(txt)}</div>`;
+}
+
+async function doLogin(){
+  const email=document.getElementById('login-user').value.trim();
+  const pwd=document.getElementById('login-pwd').value;
+  if(!email||!pwd){showMsg('Inserisci email e password');return;}
+  const btn=document.getElementById('btn-login');
+  btn.disabled=true; btn.textContent='...';
+  try{
+    const d=await SB.signIn(email,pwd);
+    SESSION.accessToken=d.access_token; SESSION.refreshToken=d.refresh_token;
+    SESSION.user=d.user; SB._token=d.access_token;
+    saveSession();
+    window.location.href='app.html';
+  }catch(e){
+    showMsg(e.message.includes('Invalid')||e.message.includes('invalid')?'Email o password errati':e.message);
+  }finally{btn.disabled=false;btn.textContent=UI[D.lang]?.btn_in||'Accedi →';}
+}
+
+async function doRegister(){
+  const nome=document.getElementById('reg-nome').value.trim();
+  const email=document.getElementById('reg-user').value.trim();
+  const pwd=document.getElementById('reg-pwd').value;
+  const pwd2=document.getElementById('reg-pwd2').value;
+  if(!nome||!email||!pwd){showMsg('Tutti i campi sono obbligatori');return;}
+  if(pwd!==pwd2){showMsg('Le password non coincidono');return;}
+  if(pwd.length<6){showMsg('Password minimo 6 caratteri');return;}
+  const btn=document.getElementById('btn-reg');
+  btn.disabled=true; btn.textContent='...';
+  try{
+    const d=await SB.signUp(email,pwd,{nome});
+    if(d.user&&!d.session){
+      showMsg('✅ Registrazione completata! Controlla la tua email, poi accedi.','ok');
+      showTab('login'); return;
+    }
+    SESSION.accessToken=d.session?.access_token; SESSION.refreshToken=d.session?.refresh_token;
+    SESSION.user=d.user; SB._token=d.session?.access_token;
+    saveSession();
+    window.location.href='app.html';
+  }catch(e){showMsg(e.message.includes('registered')?'Email già registrata':e.message);}
+  finally{btn.disabled=false;btn.textContent=UI[D.lang]?.btn_reg||'Crea account →';}
+}
+
+// Auto-login se sessione valida
+(async()=>{
+  if(loadSession()){
+    try{await SB.getUser(); window.location.href='app.html';}
+    catch{clearSession();}
+  }
+})();
+</script>
+</body>
+</html>
