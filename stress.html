@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stress test</title>
+<link rel="stylesheet" href="_base.css">
+<style>body{padding:22px 24px 40px}</style>
+</head>
+<body>
+<script src="core.js"></script>
+<script src="_frame.js"></script>
+
+<h2>⚡ Stress test — configurabile</h2>
+<p class="sub">Scegli le variabili da stressare, le percentuali di variazione e gli indici da monitorare.</p>
+
+<div class="card">
+  <h3>Variabili da stressare</h3>
+  <div id="vars-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px"></div>
+</div>
+
+<div class="card">
+  <h3>KPI da monitorare</h3>
+  <div id="kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px"></div>
+</div>
+
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <h3 style="margin:0">Risultati scenari</h3>
+    <button class="btn pri" onclick="runStressTest()">▶ Esegui</button>
+  </div>
+  <div class="tbl-wrap"><table class="tbl" id="result-tbl"><tbody><tr><td style="color:var(--mut);text-align:center;padding:20px">Clicca ▶ Esegui per calcolare gli scenari.</td></tr></tbody></table></div>
+</div>
+
+<script>
+const ALL_KPIS = ['EBITDA','EBIT','Utile netto','Current Ratio','Quick Ratio','Debt Ratio','ROI','ROS','ROE','EBITDA Margin'];
+
+function renderVarsGrid() {
+  const w = document.getElementById('vars-grid');
+  w.innerHTML = D.stress.vars.map((sv,i) => `
+    <div style="background:var(--sur2);border:1px solid var(--bor);border-radius:var(--r);padding:12px 14px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
+        <input type="checkbox" ${sv.active?'checked':''} onchange="D.stress.vars[${i}].active=this.checked;sendToParent({stress:{...D.stress}})">
+        <span style="font-weight:600;font-size:13px">${esc(tvar(sv.id))}</span>
+      </label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:12px;color:var(--mut)">Variazione %</label>
+        <input type="number" value="${sv.pct}" step="0.5" style="width:80px;padding:4px 7px;border:1px solid var(--bors);border-radius:var(--r);font-size:12px"
+          onchange="D.stress.vars[${i}].pct=parseFloat(this.value)||0;sendToParent({stress:{...D.stress}})">
+        <span style="font-size:11px;color:var(--mut)">${sv.pct>=0?'▲ aumento':'▼ riduzione'}</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderKpiGrid() {
+  const w = document.getElementById('kpi-grid');
+  w.innerHTML = ALL_KPIS.map(k => `
+    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:7px 10px;background:var(--sur2);border:1px solid var(--bor);border-radius:var(--r)">
+      <input type="checkbox" ${D.stress.kpis.includes(k)?'checked':''} onchange="toggleKpi('${k}',this.checked)">
+      <span style="font-size:12.5px">${k}</span>
+    </label>`).join('');
+}
+
+function toggleKpi(k, on) {
+  if(on&&!D.stress.kpis.includes(k)) D.stress.kpis.push(k);
+  if(!on) D.stress.kpis = D.stress.kpis.filter(x=>x!==k);
+  sendToParent({stress:{...D.stress}});
+}
+
+function getKpiVal(kpiName, rm, dm, pm, y) {
+  const isH = D.hist.includes(y);
+  const getV = id => isH ? (D.ce[`_${id}_${y}`]||0) : (D.prevCE[`_${id}_${y}`]||0);
+  const rev_base = getV('A1');
+  const ebitda_base = getV('EBITDA');
+  const ebit_base = getV('AB');
+  const rev = rev_base * rm;
+  const ebit = ebit_base * rm / (dm * pm);
+  const ebitda = ebitda_base * rm;
+  const utile = ebit * 0.78;
+  const tatt = D.sp[`_TATT_${y}`]||0;
+  const dct = D.sp[`_DCT_${y}`]||1;
+  const liq = D.sp[`_CIV_${y}`]||0;
+  const cred = D.sp[`_CII_${y}`]||0;
+  const rim = D.sp[`_CI_${y}`]||0;
+  const pn = D.sp[`_TPN_${y}`]||1;
+  const tdeb = D.sp[`_TDEB_${y}`]||0;
+  switch(kpiName) {
+    case 'EBITDA':return ebitda;
+    case 'EBIT':return ebit;
+    case 'Utile netto':return utile;
+    case 'Current Ratio':return dct?(liq+cred+rim)/dct:null;
+    case 'Quick Ratio':return dct?(liq+cred)/dct:null;
+    case 'Debt Ratio':return tatt?tdeb/tatt*100:null;
+    case 'ROI':return tatt?ebit/tatt*100:null;
+    case 'ROS':return rev?ebit/rev*100:null;
+    case 'ROE':return pn?utile/pn*100:null;
+    case 'EBITDA Margin':return rev?ebitda/rev*100:null;
+    default:return null;
+  }
+}
+
+function runStressTest() {
+  recalcAll();
+  const actVars = D.stress.vars.filter(sv=>sv.active);
+  const yrs = [...D.hist.slice(-2), ...D.prev];
+  const L = D.lang;
+  const lbl = {
+    base:   {it:'Scenario base',en:'Base scenario',es:'Escenario base',fr:'Scénario de base'},
+    comb:   {it:'Scenario combinato',en:'Combined scenario',es:'Escenario combinado',fr:'Scénario combiné'},
+    pass:   {it:'✅ Superato',en:'✅ Passed',es:'✅ Superado',fr:'✅ Réussi'},
+    fail:   {it:'❌ Non superato',en:'❌ Failed',es:'❌ No superado',fr:'❌ Non réussi'},
+  };
+
+  const scenarios = [{id:'base',lbl:lbl.base[L]||lbl.base.it,rm:1,dm:1,pm:1}];
+  actVars.forEach(sv => {
+    const sc = {id:sv.id, lbl:`${tvar(sv.id)} ${sv.pct>=0?'+':''}${sv.pct}%`, rm:1,dm:1,pm:1};
+    if(sv.id==='ricavi'||sv.id==='prezzo') sc.rm = 1+sv.pct/100;
+    if(sv.id==='mp'||sv.id==='servizi')   sc.dm = 1+sv.pct/100;
+    if(sv.id==='personale')               sc.pm = 1+sv.pct/100;
+    scenarios.push(sc);
+  });
+  if(actVars.length>1) {
+    const comb={id:'comb',lbl:lbl.comb[L]||lbl.comb.it,rm:1,dm:1,pm:1};
+    actVars.forEach(sv=>{
+      if(sv.id==='ricavi'||sv.id==='prezzo') comb.rm*=1+sv.pct/100;
+      if(sv.id==='mp'||sv.id==='servizi') comb.dm*=1+sv.pct/100;
+      if(sv.id==='personale') comb.pm*=1+sv.pct/100;
+    });
+    scenarios.push(comb);
+  }
+
+  const t = document.getElementById('result-tbl');
+  if(!D.stress.kpis.length){t.innerHTML='<tbody><tr><td style="color:var(--mut);text-align:center;padding:16px">Seleziona almeno un KPI da monitorare.</td></tr></tbody>';return;}
+
+  let h = `<thead><tr><th>Scenario</th><th>KPI</th>${yrs.map(y=>`<th${D.prev.includes(y)?' style="color:var(--acc-t);font-style:italic"':''}>${y}</th>`).join('')}<th>Esito</th></tr></thead><tbody>`;
+  scenarios.forEach((sc,si) => {
+    D.stress.kpis.forEach((kpi,ki) => {
+      const isBase = si===0;
+      const vals = yrs.map(y=>getKpiVal(kpi,sc.rm,sc.dm,sc.pm,y));
+      const baseVals = yrs.map(y=>getKpiVal(kpi,1,1,1,y));
+      const pass = isBase || vals.every((v,i)=>v===null||baseVals[i]===null||v>=baseVals[i]*0.85);
+      h += `<tr${isBase?' class="sep"':''}>`;
+      if(ki===0) h += `<td rowspan="${D.stress.kpis.length}" style="font-weight:700;border-right:2px solid var(--bors);vertical-align:top;padding-top:8px">${esc(sc.lbl)}</td>`;
+      h += `<td style="font-size:11.5px">${kpi}</td>`;
+      vals.forEach((val,vi)=>{
+        const bv = baseVals[vi];
+        const bad = !isBase && val!==null && bv!==null && val<bv*0.9;
+        const good = !isBase && val!==null && bv!==null && val>=bv;
+        h += `<td style="${bad?'color:var(--red);font-weight:600':good?'color:var(--ok)':isBase?'color:var(--ok)':''}">${val!==null?val.toFixed(2):'—'}</td>`;
+      });
+      if(ki===0) h += `<td rowspan="${D.stress.kpis.length}" style="font-weight:700;text-align:center;vertical-align:top;padding-top:8px">${pass?lbl.pass[L]||lbl.pass.it:lbl.fail[L]||lbl.fail.it}</td>`;
+      h += `</tr>`;
+    });
+  });
+  h += '</tbody>';
+  t.innerHTML = h;
+  fitHeight();
+}
+
+function onInit() {
+  renderVarsGrid();
+  renderKpiGrid();
+}
+
+function onLangChange() {
+  renderVarsGrid();
+  renderKpiGrid();
+}
+
+renderVarsGrid();
+renderKpiGrid();
+</script>
+</body>
+</html>

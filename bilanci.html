@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bilanci</title>
+<link rel="stylesheet" href="_base.css">
+<style>
+body{padding:22px 24px 40px}
+.year-tab{padding:7px 14px;border:1px solid var(--bors);border-radius:var(--r);cursor:pointer;font-size:12.5px;background:var(--sur);color:var(--mut);transition:.12s}
+.year-tab.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.tbl input[type=number]{border:none;background:transparent;text-align:right;width:90px;padding:2px 3px;font-size:12px;color:var(--txt)}
+.tbl input[type=number]:focus{background:var(--acc-bg);border-radius:3px;outline:none}
+</style>
+</head>
+<body>
+<script src="core.js"></script>
+<script src="_frame.js"></script>
+
+<h2>📊 Conto Economico & Stato Patrimoniale</h2>
+<p class="sub">Per ogni voce: colonne <strong>Da Import</strong> · <strong>Rettifica</strong> · <strong>Saldo</strong> (calcolato). Clicca un anno per editarlo.</p>
+
+<!-- Anno selector -->
+<div class="btn-row" id="year-tabs" style="margin-bottom:16px"></div>
+
+<!-- CE -->
+<div class="card">
+  <h3>Conto economico — Anno <span id="ce-year-lbl"></span></h3>
+  <div class="tbl-wrap"><table class="tbl" id="ce-tbl"></table></div>
+</div>
+
+<!-- SP -->
+<div class="card" style="margin-top:0">
+  <h3>Stato patrimoniale — Anno <span id="sp-year-lbl"></span></h3>
+  <div class="tbl-wrap"><table class="tbl" id="sp-tbl"></table></div>
+</div>
+
+<script>
+let _y = null; // anno selezionato
+
+function renderYearTabs() {
+  const w = document.getElementById('year-tabs');
+  w.innerHTML = D.hist.map(y => `<button class="year-tab ${y===_y?'on':''}" onclick="selectYear(${y})">${y}</button>`).join('');
+}
+
+function selectYear(y) {
+  _y = y;
+  renderYearTabs();
+  renderCETbl(y);
+  renderSPTbl(y);
+  document.getElementById('ce-year-lbl').textContent = y;
+  document.getElementById('sp-year-lbl').textContent = y;
+}
+
+function renderCETbl(y) {
+  const t = document.getElementById('ce-tbl');
+  let h = `<thead><tr>
+    <th style="min-width:200px;text-align:left">Voce</th>
+    <th style="width:110px;border-left:2px solid var(--bors)">Da Import</th>
+    <th style="width:110px">Rettifica</th>
+    <th style="width:110px;background:var(--acc-bg);color:var(--acc-t)">Saldo</th>
+  </tr></thead><tbody>`;
+  CE_ROWS.forEach(r => {
+    if (r.t === 'h') { h += `<tr><td colspan="4" class="hdr">${r.lbl}</td></tr>`; return; }
+    if (r.t === 's' || r.t === 'sub') {
+      const calc = r.t === 's' ? D.ce[`_${r.id}_${y}`] : D.ce[`_${r.id}_${y}`];
+      const cls = r.t === 's' ? 'sep' : 'sub';
+      h += `<tr class="${cls}"><td>${r.lbl}</td><td></td><td></td>
+        <td id="cec-${r.id}-${y}" class="${calc<0?'neg':calc>0?'pos':''}">${calc!==undefined?fmtN(calc):'—'}</td></tr>`;
+      return;
+    }
+    const vi = D.ce[`ce_${r.id}_${y}_i`] || '';
+    const vr = D.ce[`ce_${r.id}_${y}_r`] || '';
+    const saldo = (parseFloat(vi)||0) + (parseFloat(vr)||0);
+    h += `<tr><td>${r.lbl}</td>
+      <td style="border-left:2px solid var(--bors)">
+        <input type="number" value="${vi}" placeholder="0" onchange="setCE('${r.id}',${y},'i',this.value)">
+      </td>
+      <td><input type="number" value="${vr}" placeholder="0" onchange="setCE('${r.id}',${y},'r',this.value)"></td>
+      <td id="cec-${r.id}-${y}" style="background:var(--acc-bg);font-weight:600;color:var(--acc-t)">${fmtN(saldo)}</td>
+    </tr>`;
+  });
+  h += '</tbody>';
+  t.innerHTML = h;
+}
+
+function renderSPTbl(y) {
+  const t = document.getElementById('sp-tbl');
+  let h = `<thead><tr>
+    <th style="min-width:200px;text-align:left">Voce</th>
+    <th style="width:110px;border-left:2px solid var(--bors)">Da Import</th>
+    <th style="width:110px">Rettifica</th>
+    <th style="width:110px;background:var(--acc-bg);color:var(--acc-t)">Saldo</th>
+  </tr></thead><tbody>`;
+  [...SP_ATTIVO, ...SP_PASSIVO].forEach(r => {
+    if (r.t === 'h') { h += `<tr><td colspan="4" class="hdr">${r.lbl}</td></tr>`; return; }
+    if (r.t === 's' || r.t === 'sub') {
+      const calc = D.sp[`_${r.id}_${y}`];
+      h += `<tr class="${r.t==='s'?'sep':'sub'}"><td>${r.lbl}</td><td></td><td></td>
+        <td id="spc-${r.id}-${y}" class="${calc<0?'neg':''}">${calc!==undefined?fmtN(calc):'—'}</td></tr>`;
+      return;
+    }
+    const vi = D.sp[`sp_${r.id}_${y}_i`] || '';
+    const vr = D.sp[`sp_${r.id}_${y}_r`] || '';
+    const saldo = (parseFloat(vi)||0) + (parseFloat(vr)||0);
+    h += `<tr><td>${r.lbl}</td>
+      <td style="border-left:2px solid var(--bors)">
+        <input type="number" value="${vi}" placeholder="0" onchange="setSP('${r.id}',${y},'i',this.value)">
+      </td>
+      <td><input type="number" value="${vr}" placeholder="0" onchange="setSP('${r.id}',${y},'r',this.value)"></td>
+      <td id="spc-${r.id}-${y}" style="background:var(--acc-bg);font-weight:600;color:var(--acc-t)">${fmtN(saldo)}</td>
+    </tr>`;
+  });
+  h += '</tbody>';
+  t.innerHTML = h;
+}
+
+function setCE(id, y, col, val) {
+  D.ce[`ce_${id}_${y}_${col}`] = parseFloat(val) || 0;
+  recalcCE();
+  // Aggiorna saldi CE
+  CE_ROWS.forEach(r => {
+    if (r.t === 's' || r.t === 'sub') {
+      const el = document.getElementById(`cec-${r.id}-${y}`);
+      if (!el) return;
+      const calc = D.ce[`_${r.id}_${y}`] || 0;
+      el.textContent = fmtN(calc);
+      el.className = calc < 0 ? 'neg' : calc > 0 ? 'pos' : '';
+    }
+    if (r.t === 'v') {
+      const el = document.getElementById(`cec-${r.id}-${y}`);
+      if (!el) return;
+      const vi = D.ce[`ce_${r.id}_${y}_i`]||0, vr = D.ce[`ce_${r.id}_${y}_r`]||0;
+      el.textContent = fmtN(vi+vr);
+      el.style.color = (vi+vr)<0?'var(--red)':'var(--acc-t)';
+    }
+  });
+  sendToParent({ ce:{...D.ce} });
+}
+
+function setSP(id, y, col, val) {
+  D.sp[`sp_${id}_${y}_${col}`] = parseFloat(val) || 0;
+  recalcSP();
+  // Aggiorna saldi SP
+  [...SP_ATTIVO,...SP_PASSIVO].forEach(r => {
+    if (r.t === 's' || r.t === 'sub') {
+      const el = document.getElementById(`spc-${r.id}-${y}`);
+      if (!el) return;
+      const calc = D.sp[`_${r.id}_${y}`] || 0;
+      el.textContent = fmtN(calc);
+      el.className = calc < 0 ? 'neg' : '';
+    }
+    if (r.t === 'v') {
+      const el = document.getElementById(`spc-${r.id}-${y}`);
+      if (!el) return;
+      const vi = D.sp[`sp_${r.id}_${y}_i`]||0, vr = D.sp[`sp_${r.id}_${y}_r`]||0;
+      el.textContent = fmtN(vi+vr);
+    }
+  });
+  sendToParent({ sp:{...D.sp} });
+}
+
+function onInit() {
+  recalcCE(); recalcSP();
+  _y = D.hist[D.hist.length-1];
+  renderYearTabs();
+  selectYear(_y);
+  fitHeight();
+}
+
+// Init standalone
+_y = D.hist[D.hist.length-1];
+recalcCE(); recalcSP();
+renderYearTabs();
+selectYear(_y);
+</script>
+</body>
+</html>

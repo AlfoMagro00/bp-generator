@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anagrafica</title>
+<link rel="stylesheet" href="_base.css">
+<style>body{padding:22px 24px 40px}</style>
+</head>
+<body>
+<script src="core.js"></script>
+<script src="_frame.js"></script>
+
+<h2>🏢 Anagrafica cliente</h2>
+<p class="sub">Dati identificativi dell'azienda — fogli Cli1–Cli6.</p>
+
+<div class="card"><h3>Dati identificativi</h3>
+  <div class="fr2">
+    <div class="f"><label class="fl">Ragione sociale *</label><input type="text" id="c-rs" placeholder="Es. Mag.Al. S.r.l." onchange="send()"></div>
+    <div class="f"><label class="fl">Forma giuridica</label>
+      <select id="c-fg" onchange="send()"><option value="">—</option><option>S.r.l.</option><option>S.r.l.s.</option><option>S.p.A.</option><option>S.a.s.</option><option>S.n.c.</option><option>Ditta individuale</option><option>Start-up innovativa</option><option>Società cooperativa</option><option>Associazione</option><option>Fondazione</option><option>Altro</option></select>
+    </div>
+  </div>
+  <div class="fr3">
+    <div class="f"><label class="fl">Partita IVA</label><input type="text" id="c-piva" onchange="send()"></div>
+    <div class="f"><label class="fl">Codice Fiscale</label><input type="text" id="c-cf" onchange="send()"></div>
+    <div class="f"><label class="fl">Codice REA</label><input type="text" id="c-rea" onchange="send()"></div>
+  </div>
+  <div class="fr3">
+    <div class="f"><label class="fl">Data costituzione</label><input type="date" id="c-data" onchange="send()"></div>
+    <div class="f"><label class="fl">Stato</label>
+      <select id="c-stato" onchange="send()"><option value="">—</option><option>Attiva</option><option>In liquidazione</option><option>Cessata</option><option>Inattiva</option></select>
+    </div>
+    <div class="f"><label class="fl">Classificazione dimensionale</label>
+      <select id="c-dim" onchange="send()"><option value="">—</option><option>Micro impresa</option><option>Piccola impresa</option><option>Media impresa</option><option>Grande impresa</option></select>
+    </div>
+  </div>
+</div>
+
+<div class="card"><h3>Profilo aziendale</h3>
+  <div class="fr2">
+    <div class="f"><label class="fl">Settore di mercato</label>
+      <select id="c-sett" onchange="fillSub();send()">
+        <option value="">—</option>
+        <option>Tecnologia e Software</option><option>Alimentare e Ristorazione</option><option>E-commerce e Retail</option><option>Moda e Abbigliamento</option><option>Salute e Benessere</option><option>Servizi Professionali</option><option>Immobiliare e Costruzioni</option><option>Turismo e Ospitalità</option><option>Formazione e Istruzione</option><option>Artigianato e Manifattura</option><option>Finanza e Assicurazioni</option><option>Agricoltura e Agroalimentare</option><option>Automotive e Trasporti</option><option>Energia e Utilities</option><option>Media e Comunicazione</option><option>Logistica e Supply Chain</option><option>Sport e Fitness</option>
+      </select>
+    </div>
+    <div class="f"><label class="fl">Sotto-settore</label><select id="c-subsett" onchange="send()"><option value="">—</option></select></div>
+  </div>
+  <div class="fr2">
+    <div class="f"><label class="fl">Area geografica</label>
+      <select id="c-geo" onchange="send()"><option value="">—</option><option>Locale (città)</option><option>Provinciale</option><option>Regionale</option><option>Nazionale - Italia</option><option>Europa</option><option>Nord America</option><option>Asia Pacifico</option><option>Globale</option></select>
+    </div>
+    <div class="f"><label class="fl">Modello di business</label>
+      <select id="c-biz" onchange="send()"><option value="">—</option><option>B2C</option><option>B2B</option><option>B2G</option><option>Marketplace</option><option>SaaS</option><option>Franchise</option><option>D2C</option><option>Freemium</option></select>
+    </div>
+  </div>
+  <div class="fr3">
+    <div class="f"><label class="fl">N° dipendenti</label>
+      <select id="c-dip" onchange="send()"><option value="">—</option><option>Solo fondatore (0)</option><option>1-5</option><option>6-15</option><option>16-50</option><option>51-100</option><option>101-250</option><option>Oltre 250</option></select>
+    </div>
+    <div class="f"><label class="fl">Fase di sviluppo</label>
+      <select id="c-fase" onchange="send()"><option value="">—</option><option>Idea / Pre-lancio</option><option>MVP</option><option>Lancio (0-6 mesi)</option><option>Early stage (6m-2a)</option><option>Crescita (2-5 anni)</option><option>Consolidamento</option><option>Matura (10+ anni)</option><option>Ristrutturazione</option></select>
+    </div>
+    <div class="f"><label class="fl">Budget annuale stimato</label>
+      <select id="c-budget" onchange="send()"><option value="">—</option><option>&lt; 10.000 €</option><option>10-50.000 €</option><option>50-100.000 €</option><option>100-250.000 €</option><option>250-500.000 €</option><option>500k-1M €</option><option>1-5M €</option><option>5-20M €</option><option>Oltre 20M €</option></select>
+    </div>
+  </div>
+</div>
+
+<div class="card"><h3>Sede legale (Cli2)</h3>
+  <div class="fr2">
+    <div class="f"><label class="fl">Indirizzo</label><input type="text" id="sl-ind" onchange="send()"></div>
+    <div class="f"><label class="fl">N. civico</label><input type="text" id="sl-civ" onchange="send()" style="max-width:100px"></div>
+  </div>
+  <div class="fr3">
+    <div class="f"><label class="fl">CAP</label><input type="text" id="sl-cap" maxlength="5" onchange="send()"></div>
+    <div class="f"><label class="fl">Comune</label><input type="text" id="sl-com" onchange="send()"></div>
+    <div class="f"><label class="fl">Provincia</label><input type="text" id="sl-prov" maxlength="2" onchange="send()"></div>
+  </div>
+  <div class="f"><label class="fl">Email sede</label><input type="text" id="sl-mail" onchange="send()"></div>
+</div>
+
+<div class="card"><h3>Profilo clienti e concorrenza (Cli6)</h3>
+  <div class="fr2">
+    <div class="f"><label class="fl">Tipo cliente principale</label>
+      <select id="cl-tipo" onchange="send()"><option value="">—</option><option>Principalmente PMI</option><option>Grandi aziende</option><option>Consumatori privati</option><option>Enti pubblici</option><option>Startup</option><option>Misto</option></select>
+    </div>
+    <div class="f"><label class="fl">Canale di vendita principale</label>
+      <select id="cl-canale" onchange="send()"><option value="">—</option><option>Solo online (e-commerce proprio)</option><option>Solo online (marketplace)</option><option>Omnicanale</option><option>Solo offline (negozio fisico)</option><option>Vendita diretta B2B</option><option>App mobile</option></select>
+    </div>
+  </div>
+  <div class="f"><label class="fl">Fascia età clienti</label>
+    <select id="cl-eta" onchange="send()"><option value="">—</option><option>18-24</option><option>25-34</option><option>35-44</option><option>45-54</option><option>55-64</option><option>65+</option><option>Mix / Tutte le fasce</option></select>
+  </div>
+  <div class="f"><label class="fl">Concorrenti noti</label><textarea id="cl-conc" rows="2" onchange="send()"></textarea></div>
+  <div class="f"><label class="fl">Descrizione attività e proposta di valore</label><textarea id="cl-desc" rows="4" onchange="send()"></textarea></div>
+</div>
+
+<script>
+const SUBSETT = {
+  'Tecnologia e Software':['Sviluppo software su misura','SaaS e cloud','AI e machine learning','Cybersecurity','App mobile','E-commerce','IoT','Big data'],
+  'Servizi Professionali':['Consulenza aziendale','Studio legale','Commercialista','Agenzia comunicazione','Recruiting','Formazione'],
+  'Alimentare e Ristorazione':['Ristorazione','Produzione alimentare','Catering','Distribuzione alimentare'],
+  'Salute e Benessere':['Cliniche private','Fisioterapia','Farmacia','Psicologia','Estetica e spa'],
+};
+
+function fillSub(){
+  const s=document.getElementById('c-sett').value;
+  const opts=(SUBSETT[s]||[]).map(x=>`<option>${x}</option>`).join('');
+  document.getElementById('c-subsett').innerHTML='<option value="">—</option>'+opts;
+}
+
+function send() {
+  collectAndSend();
+}
+
+function onInit() { fillSub(); fitHeight(); }
+fillSub();
+</script>
+</body>
+</html>

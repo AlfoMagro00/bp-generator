@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BP Generator</title>
+<link rel="stylesheet" href="_base.css">
+<style>
+/* ── RESET & BASE ─────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13.5px;background:#f2f1ee;color:#1c1c1a}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+
+/* ── COMPANY PICKER OVERLAY — blocca tutto ────────────── */
+#cp-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.55);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  z-index:999;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+#cp-box{
+  background:#fff;border-radius:16px;width:100%;max-width:480px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;
+}
+.cp-head{
+  background:linear-gradient(135deg,#1e3a8a,#2563eb);
+  padding:22px 24px 18px;color:#fff;
+}
+.cp-head h2{font-size:18px;font-weight:800;margin-bottom:3px}
+.cp-head p{font-size:12.5px;opacity:.85}
+.cp-body{padding:20px 24px 24px}
+.az-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 14px;border:1.5px solid #e5e5e0;border-radius:10px;
+  margin-bottom:8px;cursor:pointer;transition:.15s;background:#fff;
+}
+.az-item:hover{border-color:#2563eb;background:#eff6ff}
+.az-name{font-weight:700;font-size:14px;color:#1c1c1a}
+.az-date{font-size:11px;color:#888;margin-top:2px}
+.az-del{
+  color:#dc2626;background:none;border:none;cursor:pointer;
+  font-size:16px;padding:5px 8px;border-radius:6px;flex-shrink:0;
+  transition:.12s;
+}
+.az-del:hover{background:#fef2f2}
+.new-az-row{display:flex;gap:8px;margin-top:14px}
+.new-az-row input{
+  flex:1;padding:10px 12px;border:1.5px solid #d0d0c8;border-radius:8px;
+  font-size:13.5px;background:#f8f8f5;outline:none;
+}
+.new-az-row input:focus{border-color:#2563eb;background:#fff}
+.cp-create-btn{
+  padding:10px 18px;background:#1d4ed8;color:#fff;border:none;
+  border-radius:8px;font-size:13px;font-weight:600;white-space:nowrap;
+}
+.cp-create-btn:hover{background:#1e40af}
+.cp-logout{
+  float:right;margin-top:4px;padding:5px 12px;background:rgba(255,255,255,.2);
+  color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:7px;
+  font-size:12px;font-weight:500;
+}
+.cp-logout:hover{background:rgba(255,255,255,.3)}
+.cp-err{margin-top:8px;padding:8px 12px;background:#fef2f2;color:#dc2626;border-radius:7px;font-size:12.5px;display:none}
+.cp-err.show{display:block}
+
+/* ── TOP BAR ──────────────────────────────────────────── */
+#topbar{
+  height:46px;background:#fff;border-bottom:1px solid #ddddd8;
+  display:flex;align-items:center;padding:0 16px;gap:8px;
+  position:sticky;top:0;z-index:50;flex-shrink:0;
+}
+#tb-logo{font-weight:800;font-size:14px;color:#1e40af;margin-right:4px}
+#tb-company{font-size:12.5px;color:#68685e;font-weight:500}
+#tb-status{font-size:11px;color:#888;margin-left:4px}
+.tb-sep{width:1px;height:20px;background:#ddddd8;margin:0 4px}
+.tbtn{
+  padding:5px 13px;border-radius:7px;font-size:12px;font-weight:500;
+  border:1px solid #c5c5bc;background:#fff;color:#1c1c1a;transition:.12s;
+}
+.tbtn:hover{background:#f2f1ee}
+.tbtn.save{background:#dcfce7;color:#166534;border-color:#86efac}
+.tbtn.save:hover{background:#bbf7d0}
+.tbtn.danger{color:#dc2626;border-color:#fca5a5;background:#fff}
+.tbtn.danger:hover{background:#fef2f2}
+.tbtn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── LAYOUT ───────────────────────────────────────────── */
+#layout{display:flex;height:calc(100vh - 46px);overflow:hidden}
+
+/* ── SIDEBAR ──────────────────────────────────────────── */
+#nav{
+  width:218px;background:#fff;border-right:1px solid #ddddd8;
+  display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;
+}
+.nav-lang{padding:10px 10px 8px;border-bottom:1px solid #ddddd8}
+.nav-lang select{
+  width:100%;padding:5px 8px;font-size:12px;border:1px solid #c5c5bc;
+  border-radius:7px;background:#f8f8f5;color:#1c1c1a;outline:none;
+}
+.nav-sec{
+  padding:12px 12px 3px;font-size:10px;font-weight:700;
+  letter-spacing:.09em;text-transform:uppercase;color:#a0a098;
+}
+.ni{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;margin:1px 5px;border-radius:7px;
+  cursor:pointer;font-size:12.5px;color:#68685e;
+  border:none;background:none;width:calc(100% - 10px);text-align:left;
+  transition:.12s;
+}
+.ni:hover{background:#f2f1ee;color:#1c1c1a}
+.ni.on{background:#eff6ff;color:#1d4ed8;font-weight:600}
+.ni .ic{font-size:14px;flex-shrink:0;width:18px;text-align:center}
+.nav-bot{margin-top:auto;padding:10px;border-top:1px solid #ddddd8;display:flex;flex-direction:column;gap:6px}
+.nb-export{
+  width:100%;padding:8px;border-radius:7px;font-size:12.5px;font-weight:600;
+  background:#dcfce7;color:#166534;border:1px solid #86efac;
+}
+.nb-export:hover{background:#bbf7d0}
+.nb-report{
+  width:100%;padding:9px;border-radius:7px;font-size:13px;font-weight:700;
+  background:linear-gradient(135deg,#1e40af,#2563eb);color:#fff;border:none;
+}
+.nb-report:hover{opacity:.88}
+
+/* ── CONTENT ──────────────────────────────────────────── */
+#content-wrap{flex:1;overflow-y:auto;background:#f2f1ee}
+#content-frame{width:100%;height:100%;min-height:600px;border:none;display:block}
+
+/* ── DARK MODE ────────────────────────────────────────── */
+@media(prefers-color-scheme:dark){
+  html,body{background:#111110;color:#eeeee8}
+  #cp-box,.az-item{background:#1a1a18}
+  .az-item:hover{background:#1e2a40;border-color:#3b82f6}
+  .az-name{color:#eeeee8}
+  #topbar,#nav{background:#1a1a18;border-color:#2a2a27}
+  .nav-lang select{background:#222220;color:#eeeee8;border-color:#3a3a35}
+  .ni:hover{background:#222220;color:#eeeee8}
+  .ni.on{background:#1e2a40;color:#93c5fd}
+  .tbtn{background:#1a1a18;color:#eeeee8;border-color:#3a3a35}
+  .tbtn:hover{background:#222220}
+  .tbtn.save{background:#0d2018;color:#86efac;border-color:#166534}
+  .nb-export{background:#0d2018;color:#86efac;border-color:#166534}
+  #content-wrap{background:#111110}
+  .new-az-row input{background:#222220;color:#eeeee8;border-color:#3a3a35}
+  .new-az-row input:focus{border-color:#3b82f6;background:#1a1a18}
+}
+</style>
+</head>
+<body>
+<script src="core.js"></script>
+
+<!-- ══ COMPANY PICKER (appare per primo, blocca tutto) ════════ -->
+<div id="cp-overlay">
+  <div id="cp-box">
+    <div class="cp-head">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div>
+          <h2>📊 BP Generator</h2>
+          <p>Benvenuto, <strong id="cp-nome" style="opacity:1">…</strong></p>
+        </div>
+        <button class="cp-logout" onclick="doLogout()">Esci</button>
+      </div>
+    </div>
+    <div class="cp-body">
+      <p style="font-size:12px;color:#888;margin-bottom:12px">Seleziona un'azienda o creane una nuova</p>
+      <div id="az-list">
+        <div style="text-align:center;padding:20px;color:#aaa;font-size:12.5px">Caricamento…</div>
+      </div>
+      <div class="new-az-row">
+        <input type="text" id="new-az" placeholder="Nome nuova azienda…"
+          onkeydown="if(event.key==='Enter')createAz()">
+        <button class="cp-create-btn" onclick="createAz()">+ Crea</button>
+      </div>
+      <div class="cp-err" id="cp-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOP BAR ════════════════════════════════════════════════ -->
+<div id="topbar">
+  <span id="tb-logo">BP Gen</span>
+  <div class="tb-sep"></div>
+  <span id="tb-company">—</span>
+  <span id="tb-status"></span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+    <button class="tbtn" onclick="go('import')">📥 Import</button>
+    <button class="tbtn save" id="btn-save" onclick="doSave()">💾 Salva</button>
+    <div class="tb-sep"></div>
+    <button class="tbtn" onclick="switchAz()">↔ Azienda</button>
+    <button class="tbtn danger" onclick="doLogout()">Esci</button>
+  </div>
+</div>
+
+<!-- ══ LAYOUT ════════════════════════════════════════════════ -->
+<div id="layout">
+  <nav id="nav">
+    <div class="nav-lang">
+      <select id="lang-nav" onchange="changeLang(this.value)">
+        <option value="it">🇮🇹 Italiano</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="fr">🇫🇷 Français</option>
+      </select>
+    </div>
+    <div class="nav-sec">Configurazione</div>
+    <button class="ni on" onclick="go('home')"         id="ni-home"><span class="ic">🏠</span>Home & Anni</button>
+    <button class="ni"    onclick="go('anagrafica')"   id="ni-anagrafica"><span class="ic">🏢</span>Anagrafica</button>
+    <div class="nav-sec">Bilanci storici</div>
+    <button class="ni"    onclick="go('bilanci')"      id="ni-bilanci"><span class="ic">📊</span>CE & Stato patrimoniale</button>
+    <div class="nav-sec">Previsionali</div>
+    <button class="ni"    onclick="go('previsionali')" id="ni-previsionali"><span class="ic">🔮</span>Dati previsionali</button>
+    <button class="ni"    onclick="go('finanziamenti')"id="ni-finanziamenti"><span class="ic">🏦</span>Finanziamenti</button>
+    <button class="ni"    onclick="go('stress')"       id="ni-stress"><span class="ic">⚡</span>Stress test</button>
+    <button class="ni"    onclick="go('kpi')"          id="ni-kpi"><span class="ic">📈</span>KPI & Indici</button>
+    <div class="nav-sec">Business plan</div>
+    <button class="ni"    onclick="go('narrativo')"    id="ni-narrativo"><span class="ic">📝</span>Testi & SWOT & TAM</button>
+    <button class="ni"    onclick="go('actionplan')"   id="ni-actionplan"><span class="ic">📅</span>Action Plan</button>
+    <div class="nav-sec">Strumenti</div>
+    <button class="ni"    onclick="go('import')"       id="ni-import"><span class="ic">📥</span>Import Excel</button>
+    <div class="nav-bot">
+      <button class="nb-export" onclick="doExportTemplate()">📤 Export template</button>
+      <button class="nb-report" onclick="go('report')">📄 Genera report</button>
+    </div>
+  </nav>
+
+  <div id="content-wrap">
+    <!-- iframe vuoto — viene popolato solo dopo aver scelto l'azienda -->
+    <iframe id="content-frame" src="about:blank" onload="onFrameLoad()"></iframe>
+  </div>
+</div>
+
+<script>
+// ── NAVIGAZIONE ───────────────────────────────────────────────
+const PAGES = {
+  home:'home.html', anagrafica:'anagrafica.html', bilanci:'bilanci.html',
+  previsionali:'previsionali.html', finanziamenti:'finanziamenti.html',
+  stress:'stress.html', kpi:'kpi.html', narrativo:'narrativo.html',
+  actionplan:'actionplan.html', import:'import.html', report:'report.html',
+};
+let _currentPage = 'home';
+let _appReady = false; // diventa true solo dopo openAz
+
+function go(page){
+  if(!PAGES[page]||!_appReady) return;
+  const fr = document.getElementById('content-frame');
+  try{ fr.contentWindow?.collectAndSend?.(); }catch{}
+  _currentPage = page;
+  fr.src = PAGES[page];
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  const ni = document.getElementById('ni-'+page);
+  if(ni) ni.classList.add('on');
+}
+
+function onFrameLoad(){
+  const fr = document.getElementById('content-frame');
+  if(fr.src.includes('about:blank')) return;
+  try{
+    fr.contentWindow.postMessage({
+      type:'INIT',
+      D: serialize(D),
+      session:{ currentNome:SESSION.currentNome, lang:D.lang }
+    },'*');
+  }catch{}
+  // Auto-resize iframe to content
+  const resize = ()=>{
+    try{
+      const h = fr.contentWindow.document.documentElement.scrollHeight;
+      if(h > 200) fr.style.height = h + 'px';
+    }catch{}
+  };
+  setTimeout(resize, 400);
+  setTimeout(resize, 1200);
+}
+
+window.addEventListener('message', e => {
+  if(e.data?.type==='UPDATE'){
+    merge(e.data.D);
+    if(e.data.resize) document.getElementById('content-frame').style.height = e.data.resize+'px';
+  }
+  if(e.data?.type==='SAVE') doSave();
+  if(e.data?.type==='EXPORT_TPL') doExportTemplate();
+  if(e.data?.type==='NAV') go(e.data.page);
+});
+
+function serialize(d){
+  try{ return JSON.parse(JSON.stringify({...d, mods:[...d.mods]})); }
+  catch{ return {}; }
+}
+
+function merge(upd){
+  if(!upd) return;
+  ['ce','sp','prevGrowth','prevAbs','prevMode','kpiTexts'].forEach(k=>{
+    if(upd[k]) Object.assign(D[k], upd[k]);
+  });
+  if(upd.loans)  D.loans.splice(0,D.loans.length,...upd.loans);
+  if(upd.lav4)   upd.lav4.forEach((s,i)=>{ if(D.lav4[i]) Object.assign(D.lav4[i],s); });
+  if(upd.swot)   Object.assign(D.swot, upd.swot);
+  if(upd.tam)    Object.assign(D.tam, upd.tam);
+  if(upd.apRows) D.apRows.splice(0,D.apRows.length,...upd.apRows);
+  if(upd.mods)   { D.mods.clear(); upd.mods.forEach(m=>D.mods.add(m)); }
+  if(upd.stress) Object.assign(D.stress, upd.stress);
+  if(upd.hist)   D.hist.splice(0,D.hist.length,...upd.hist);
+  if(upd.prev)   D.prev.splice(0,D.prev.length,...upd.prev);
+  if(upd.nPrev)  D.nPrev = upd.nPrev;
+  if(upd.lang){
+    D.lang = upd.lang;
+    document.getElementById('lang-nav').value = upd.lang;
+  }
+}
+
+// ── COMPANY PICKER ────────────────────────────────────────────
+function showPicker(show){
+  document.getElementById('cp-overlay').style.display = show ? 'flex' : 'none';
+}
+
+function renderAzList(aziende){
+  const w = document.getElementById('az-list');
+  if(!aziende?.length){
+    w.innerHTML = '<p style="text-align:center;padding:16px 0;color:#aaa;font-size:12.5px">Nessuna azienda. Creane una nuova qui sotto.</p>';
+    return;
+  }
+  w.innerHTML = aziende.map(a=>`
+    <div class="az-item" onclick="openAz('${esc(a.id)}','${esc(a.slug)}','${esc(a.nome)}')">
+      <div>
+        <div class="az-name">🏢 ${esc(a.nome)}</div>
+        ${a.updated_at?`<div class="az-date">Aggiornato: ${new Date(a.updated_at).toLocaleString('it-IT')}</div>`:''}
+      </div>
+      <button class="az-del" onclick="event.stopPropagation();deleteAz('${esc(a.id)}','${esc(a.nome)}')">🗑</button>
+    </div>`).join('');
+}
+
+async function switchAz(){
+  renderAzList(await loadAziende());
+  showPicker(true);
+}
+
+async function createAz(){
+  const nome = document.getElementById('new-az').value.trim();
+  if(!nome) return;
+  const errEl = document.getElementById('cp-err');
+  errEl.classList.remove('show');
+  if(!SESSION.user?.id){ errEl.textContent='Sessione scaduta'; errEl.classList.add('show'); return; }
+  try{
+    const slug = nome.toLowerCase().replace(/[^a-z0-9]/g,'_').substring(0,40);
+    const row  = await SB.insert('aziende',{user_id:SESSION.user.id, nome, slug, data:{}});
+    document.getElementById('new-az').value = '';
+    openAz(row.id, row.slug, row.nome);
+  }catch(e){
+    errEl.textContent = e.message;
+    errEl.classList.add('show');
+  }
+}
+
+async function deleteAz(id, nome){
+  if(!confirm(`Eliminare "${nome}"?`)) return;
+  try{ await SB.delete('aziende',`id=eq.${id}`); renderAzList(await loadAziende()); }
+  catch(e){ alert(e.message); }
+}
+
+async function openAz(id, slug, nome){
+  SESSION.currentDbId  = id;
+  SESSION.currentSlug  = slug;
+  SESSION.currentNome  = nome;
+  try{
+    const rows = await SB.select('aziende',`id=eq.${id}`);
+    const az = rows[0];
+    if(az?.data && Object.keys(az.data).length > 0){
+      loadDataIntoApp(az.data);
+      setStatus('Caricato ' + new Date(az.updated_at).toLocaleTimeString('it-IT'));
+    } else {
+      setStatus('Nuova azienda');
+    }
+  }catch{ setStatus('Nuova azienda'); }
+  document.getElementById('tb-company').textContent = '🏢 ' + nome;
+  showPicker(false);
+  _appReady = true;
+  go('home'); // ora l'iframe si carica
+}
+
+// ── SAVE ──────────────────────────────────────────────────────
+async function doSave(){
+  if(!SESSION.currentDbId){ alert("Seleziona prima un'azienda"); return; }
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true; btn.textContent = '…';
+  try{
+    try{ document.getElementById('content-frame').contentWindow?.collectAndSend?.(); }catch{}
+    await new Promise(r=>setTimeout(r,200));
+    await saveData();
+    setStatus('Salvato ' + new Date().toLocaleTimeString('it-IT'));
+    btn.textContent = '✅';
+    setTimeout(()=>{ btn.textContent='💾 Salva'; btn.disabled=false; }, 2000);
+  }catch(e){
+    setStatus('Errore: '+e.message);
+    btn.textContent = '❌'; btn.disabled = false;
+    setTimeout(()=>{ btn.textContent='💾 Salva'; }, 3000);
+  }
+}
+
+function setStatus(msg){ document.getElementById('tb-status').textContent = msg; }
+
+async function doLogout(){
+  try{ await SB.signOut(); }catch{}
+  clearSession();
+  window.location.href = 'index.html';
+}
+
+// ── EXPORT TEMPLATE ───────────────────────────────────────────
+function doExportTemplate(){
+  if(typeof XLSX==='undefined'){
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = () => exportTemplate();
+    document.head.appendChild(s);
+  } else {
+    exportTemplate();
+  }
+}
+
+// ── LINGUA ────────────────────────────────────────────────────
+function changeLang(lang){
+  D.lang = lang;
+  try{
+    document.getElementById('content-frame').contentWindow
+      .postMessage({type:'LANG', lang}, '*');
+  }catch{}
+}
+
+// ── AUTOSAVE ──────────────────────────────────────────────────
+setInterval(()=>{ if(SESSION.currentDbId && _appReady) doSave(); }, 120000);
+
+// ── BOOT ──────────────────────────────────────────────────────
+(async()=>{
+  if(!loadSession()){ window.location.href='index.html'; return; }
+  try{
+    const u = await SB.getUser();
+    SESSION.user = u;
+    document.getElementById('cp-nome').textContent =
+      u.user_metadata?.nome || u.email || '';
+    const aziende = await loadAziende();
+    renderAzList(aziende);
+    showPicker(true);
+  }catch{
+    clearSession();
+    window.location.href = 'index.html';
+  }
+})();
+</script>
+</body>
+</html>

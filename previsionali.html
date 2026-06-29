@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Previsionali</title>
+<link rel="stylesheet" href="_base.css">
+<style>body{padding:22px 24px 40px}</style>
+</head>
+<body>
+<script src="core.js"></script>
+<script src="_frame.js"></script>
+
+<h2>🔮 Dati previsionali</h2>
+<p class="sub">Per ogni voce scegli la modalità: <strong>Auto</strong> (media variazioni storiche), <strong>% manuale</strong> o <strong>Valore assoluto</strong>.</p>
+
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <h3 style="margin:0">Variazioni per voce</h3>
+    <button class="btn sm" onclick="calcAutoGrowth();renderPrevTbl();showSectionStatus('% automatiche calcolate dalla media storica')">
+      ⚡ Calcola % automatiche
+    </button>
+  </div>
+  <div class="tbl-wrap"><table class="tbl" id="prev-tbl"></table></div>
+</div>
+
+<div class="card">
+  <h3>Riepilogo CE previsionale</h3>
+  <div class="tbl-wrap"><table class="tbl" id="ce-prev-tbl"></table></div>
+</div>
+
+<script>
+const PREV_VOCI = [
+  {id:'A1',  lbl:'Ricavi delle vendite'},
+  {id:'B6',  lbl:'Materie prime e merci'},
+  {id:'B7',  lbl:'Per servizi'},
+  {id:'B8',  lbl:'Godimento beni di terzi'},
+  {id:'_T9', lbl:'Costo del personale'},
+  {id:'B10a',lbl:'Amm. immateriali'},
+  {id:'B10b',lbl:'Amm. materiali'},
+  {id:'B14', lbl:'Oneri diversi gestione'},
+  {id:'C17', lbl:'Interessi finanziari'},
+];
+
+function renderPrevTbl() {
+  const t = document.getElementById('prev-tbl');
+  let h = `<thead><tr><th style="min-width:180px">Voce</th><th>Modo</th>`;
+  D.prev.forEach(y => h += `<th>${y}</th>`);
+  h += `</tr></thead><tbody>`;
+  PREV_VOCI.forEach(({id, lbl}) => {
+    const m = D.prevMode[id] || 'auto';
+    h += `<tr><td>${lbl}</td>
+      <td>
+        <select style="font-size:11.5px;padding:3px 7px;width:110px" onchange="D.prevMode['${id}']=this.value;sendToParent({prevMode:{...D.prevMode}});renderPrevTbl()">
+          <option value="auto"${m==='auto'?' selected':''}>⚡ Auto</option>
+          <option value="pct"${m==='pct'?' selected':''}>% manuale</option>
+          <option value="abs"${m==='abs'?' selected':''}>Assoluto €</option>
+        </select>
+      </td>`;
+    D.prev.forEach(y => {
+      const k = `${id}_${y}`;
+      let inp = '';
+      if (m === 'auto') {
+        const val = D.prevGrowth[k];
+        inp = `<span style="color:var(--mut);font-size:12px">${val!==undefined?val.toFixed(1)+'%':'—'}</span>`;
+      } else if (m === 'pct') {
+        const val = D.prevGrowth[k] || '';
+        inp = `<input type="number" step="0.1" value="${val}" placeholder="%" style="width:70px"
+          onchange="D.prevGrowth['${k}']=parseFloat(this.value)||0;sendToParent({prevGrowth:{...D.prevGrowth}});renderCEPrevTbl()">`;
+      } else {
+        const val = D.prevAbs[k] || '';
+        inp = `<input type="number" step="any" value="${val}" placeholder="€" style="width:90px"
+          onchange="D.prevAbs['${k}']=parseFloat(this.value)||0;sendToParent({prevAbs:{...D.prevAbs}});renderCEPrevTbl()">`;
+      }
+      h += `<td>${inp}</td>`;
+    });
+    h += `</tr>`;
+  });
+  h += `</tbody>`;
+  t.innerHTML = h;
+  renderCEPrevTbl();
+}
+
+function renderCEPrevTbl() {
+  recalcAll();
+  const allY = [...D.hist, ...D.prev];
+  const rows = [
+    {id:'_A1',   lbl:'Ricavi delle vendite', cls:''},
+    {id:'_TA',   lbl:'Totale valore produzione', cls:'sub'},
+    {id:'_TB',   lbl:'Totale costi produzione', cls:'sub'},
+    {id:'_AB',   lbl:'EBIT', cls:'sep'},
+    {id:'_EBITDA',lbl:'EBITDA', cls:'sub'},
+    {id:'_EBT',  lbl:'EBT', cls:''},
+    {id:'_UTILE',lbl:'Utile netto', cls:'sep'},
+  ];
+  const t = document.getElementById('ce-prev-tbl');
+  let h = `<thead><tr><th>Voce</th>${allY.map(y=>`<th${D.prev.includes(y)?' style="color:var(--acc-t);font-style:italic"':''}>${y}</th>`).join('')}</tr></thead><tbody>`;
+  rows.forEach(r => {
+    h += `<tr${r.cls?' class="'+r.cls+'"':''}><td>${r.lbl}</td>`;
+    allY.forEach(y => {
+      const isH = D.hist.includes(y);
+      const val = isH ? (D.ce[`${r.id}_${y}`]||0) : (D.prevCE[`${r.id}_${y}`]||0);
+      h += `<td class="${val<0?'neg':''}" style="${!isH?'color:var(--acc-t);font-style:italic':''}">${fmtN(val)}</td>`;
+    });
+    h += `</tr>`;
+  });
+  h += `</tbody>`;
+  t.innerHTML = h;
+  fitHeight();
+}
+
+function onInit() {
+  renderPrevTbl();
+}
+
+renderPrevTbl();
+</script>
+</body>
+</html>
